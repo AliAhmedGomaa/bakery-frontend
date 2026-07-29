@@ -351,6 +351,12 @@
     color: var(--text-muted);
   }
 
+  &__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
   gmn-button {
     width: 100%;
   }

@@ -73,6 +73,12 @@ export const AR = {
     addToCart: 'أضف للسلة',
     completeSale: 'تأكيد البيع',
     confirmSale: 'تأكيد وإتمام البيع',
+    sellAndPrint: 'بيع مع طباعة',
+    receipt: 'إيصال بيع',
+    cashier: 'الكاشير',
+    orderNumber: 'رقم الطلب',
+    qty: 'الكمية',
+    thankYou: 'شكراً لزيارتكم',
     items: 'عنصر/عناصر',
   },
   production: {

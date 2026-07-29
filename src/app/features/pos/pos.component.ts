@@ -9,6 +9,7 @@ import {
 } from '../../shared/components';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
+import { BrandingService } from '../../core/branding/branding.service';
 import { OfflineStoreService } from '../../core/services/offline-store.service';
 import {
   Product,
@@ -38,6 +39,7 @@ import { productImageUrl } from '../../core/utils/product-image';
 export class PosComponent implements OnInit {
   private api = inject(ApiService);
   private auth = inject(AuthService);
+  private branding = inject(BrandingService);
   private offline = inject(OfflineStoreService);
 
   readonly ar = AR;
@@ -56,6 +58,7 @@ export class PosComponent implements OnInit {
   weightInput = '';
   discount = signal(0);
   processing = signal(false);
+  printAfterSale = signal(false);
 
   filteredProducts = computed(() => {
     let list = this.products();
@@ -167,15 +170,20 @@ export class PosComponent implements OnInit {
     this.discount.set(0);
   }
 
-  submitSale(): void {
+  submitSale(withPrint = false): void {
     const items = this.cart();
     if (items.length === 0) return;
 
+    this.printAfterSale.set(withPrint);
     this.processing.set(true);
     const user = this.auth.user();
+    const orderNumber = `ORD-${Date.now()}`;
+    const totalAmount = this.cartTotal();
+    const discountAmount = this.discount();
+    const receiptItems = items.map((i) => ({ ...i }));
 
     const sale: SalePayload = {
-      orderNumber: `ORD-${Date.now()}`,
+      orderNumber,
       cashierId: user?.id ?? '',
       items: items.map((i) => ({
         productId: i.product._id,
@@ -184,28 +192,188 @@ export class PosComponent implements OnInit {
         unitPrice: i.unitPrice,
         subtotal: i.subtotal,
       })),
-      totalAmount: this.cartTotal(),
+      totalAmount,
       paymentType: PaymentType.CASH,
+    };
+
+    const complete = (): void => {
+      if (withPrint) {
+        this.printReceipt({
+          orderNumber,
+          items: receiptItems,
+          totalAmount,
+          discountAmount,
+          cashierName: user?.name ?? '',
+        });
+      }
+      this.finishSale();
     };
 
     if (!this.isOnline()) {
       this.offline.enqueue(sale);
-      this.finishSale();
+      complete();
       return;
     }
 
     this.api.post('/sales', sale).subscribe({
-      next: () => this.finishSale(),
+      next: () => complete(),
       error: () => {
         this.offline.enqueue(sale);
-        this.finishSale();
+        complete();
       },
     });
   }
 
   private finishSale(): void {
     this.processing.set(false);
+    this.printAfterSale.set(false);
     this.showPayment.set(false);
     this.clearCart();
+  }
+
+  private printReceipt(data: {
+    orderNumber: string;
+    items: CartItem[];
+    totalAmount: number;
+    discountAmount: number;
+    cashierName: string;
+  }): void {
+    const appName = this.branding.branding().appName?.trim() || AR.appName;
+    const currency = AR.dashboard.currency;
+    const now = new Date();
+    const dateStr = now.toLocaleString('ar-EG');
+
+    const rows = data.items
+      .map((item) => {
+        const qty =
+          item.weightInGrams !== null
+            ? `${item.weightInGrams} جرام`
+            : String(item.quantity);
+        return `
+          <tr>
+            <td>${this.escapeHtml(item.product.name)}</td>
+            <td class="num">${this.escapeHtml(qty)}</td>
+            <td class="num">${item.subtotal.toFixed(2)}</td>
+          </tr>`;
+      })
+      .join('');
+
+    const html = `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <title>${this.escapeHtml(AR.pos.receipt)} — ${this.escapeHtml(data.orderNumber)}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      margin: 0;
+      padding: 12px;
+      color: #111;
+      width: 80mm;
+      max-width: 100%;
+    }
+    h1 {
+      margin: 0 0 4px;
+      font-size: 18px;
+      text-align: center;
+    }
+    .meta {
+      text-align: center;
+      font-size: 12px;
+      color: #444;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    th, td {
+      padding: 6px 2px;
+      border-bottom: 1px dashed #ccc;
+      text-align: right;
+      vertical-align: top;
+    }
+    th { font-weight: 700; }
+    .num { text-align: left; white-space: nowrap; }
+    .totals {
+      margin-top: 10px;
+      font-size: 13px;
+    }
+    .totals .row {
+      display: flex;
+      justify-content: space-between;
+      padding: 3px 0;
+    }
+    .totals .grand {
+      font-size: 16px;
+      font-weight: 700;
+      border-top: 1px solid #111;
+      margin-top: 6px;
+      padding-top: 8px;
+    }
+    .thanks {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 12px;
+    }
+    @media print {
+      body { width: 80mm; }
+      @page { margin: 4mm; size: auto; }
+    }
+  </style>
+</head>
+<body>
+  <h1>${this.escapeHtml(appName)}</h1>
+  <div class="meta">
+    <div>${this.escapeHtml(AR.pos.receipt)}</div>
+    <div>${this.escapeHtml(AR.pos.orderNumber)}: ${this.escapeHtml(data.orderNumber)}</div>
+    <div>${this.escapeHtml(dateStr)}</div>
+    ${data.cashierName ? `<div>${this.escapeHtml(AR.pos.cashier)}: ${this.escapeHtml(data.cashierName)}</div>` : ''}
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>${this.escapeHtml(AR.products.name)}</th>
+        <th class="num">${this.escapeHtml(AR.pos.qty)}</th>
+        <th class="num">${this.escapeHtml(AR.pos.price)}</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="totals">
+    ${
+      data.discountAmount > 0
+        ? `<div class="row"><span>${this.escapeHtml(AR.pos.discount)}</span><span>${currency} ${data.discountAmount.toFixed(2)}</span></div>`
+        : ''
+    }
+    <div class="row grand"><span>${this.escapeHtml(AR.pos.total)}</span><span>${currency} ${data.totalAmount.toFixed(2)}</span></div>
+  </div>
+  <p class="thanks">${this.escapeHtml(AR.pos.thankYou)}</p>
+  <script>
+    window.onload = function () {
+      window.focus();
+      window.print();
+    };
+  </script>
+</body>
+</html>`;
+
+    const printWindow = window.open('', '_blank', 'width=420,height=640');
+    if (!printWindow) return;
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 }

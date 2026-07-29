@@ -162,13 +162,25 @@
 >
   <div class="payment-modal">
     <p>{{ cartItemCount() }} {{ ar.pos.items }}</p>
-    <gmn-button
-      variant="primary"
-      size="lg"
-      [loading]="processing()"
-      (clicked)="submitSale()"
-    >
-      🧾 {{ ar.pos.confirmSale }}
-    </gmn-button>
+    <div class="payment-modal__actions">
+      <gmn-button
+        variant="primary"
+        size="lg"
+        [loading]="processing() && !printAfterSale()"
+        [disabled]="processing()"
+        (clicked)="submitSale(false)"
+      >
+        🧾 {{ ar.pos.confirmSale }}
+      </gmn-button>
+      <gmn-button
+        variant="secondary"
+        size="lg"
+        [loading]="processing() && printAfterSale()"
+        [disabled]="processing()"
+        (clicked)="submitSale(true)"
+      >
+        🖨️ {{ ar.pos.sellAndPrint }}
+      </gmn-button>
+    </div>
   </div>
 </gmn-modal>
