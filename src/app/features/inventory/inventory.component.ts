@@ -67,6 +67,11 @@ import { AR } from '../../core/i18n/ar';
               } @else {
                 <gmn-badge variant="success" [dot]="true">{{ ar.inventory.ok }}</gmn-badge>
               }
+            } @else if (col.key === 'actions') {
+              <div class="row-actions">
+                <gmn-button variant="ghost" size="sm" (clicked)="openEdit(String(row['_id']))">{{ ar.inventory.edit }}</gmn-button>
+                <gmn-button variant="danger" size="sm" (clicked)="confirmDelete(String(row['_id']))">{{ ar.inventory.delete }}</gmn-button>
+              </div>
             } @else {
               {{ row[col.key] }}
             }
@@ -77,7 +82,7 @@ import { AR } from '../../core/i18n/ar';
 
     <gmn-modal
       [open]="showModal()"
-      [title]="ar.inventory.addMaterial"
+      [title]="editingId() ? ar.inventory.editMaterial : ar.inventory.addMaterial"
       size="md"
       (closed)="showModal.set(false)"
     >
@@ -140,6 +145,11 @@ import { AR } from '../../core/i18n/ar';
       font-weight: 800;
       color: var(--text-primary);
     }
+    .row-actions {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+    }
     .material-form {
       display: flex;
       flex-direction: column;
@@ -177,10 +187,12 @@ export class InventoryComponent implements OnInit {
   private api = inject(ApiService);
   readonly ar = AR;
   readonly units = Object.values(MaterialUnit);
+  readonly String = String;
 
   materials = signal<RawMaterial[]>([]);
   showModal = signal(false);
   saving = signal(false);
+  editingId = signal<string | null>(null);
 
   form = {
     name: '',
@@ -197,6 +209,7 @@ export class InventoryComponent implements OnInit {
     { key: 'minStockAlert', label: AR.inventory.minAlert },
     { key: 'costPerUnit', label: AR.inventory.cost },
     { key: 'status', label: AR.inventory.status },
+    { key: 'actions', label: AR.inventory.actions },
   ];
 
   lowStockCount = computed(
@@ -226,6 +239,7 @@ export class InventoryComponent implements OnInit {
   }
 
   openNew(): void {
+    this.editingId.set(null);
     this.form = {
       name: '',
       unit: MaterialUnit.KG,
@@ -236,10 +250,36 @@ export class InventoryComponent implements OnInit {
     this.showModal.set(true);
   }
 
+  openEdit(id: string): void {
+    const material = this.materials().find((m) => m._id === id);
+    if (!material) return;
+    this.editingId.set(id);
+    this.form = {
+      name: material.name,
+      unit: material.unit,
+      currentStock: material.currentStock,
+      minStockAlert: material.minStockAlert,
+      costPerUnit: material.costPerUnit,
+    };
+    this.showModal.set(true);
+  }
+
+  confirmDelete(id: string): void {
+    if (!confirm(AR.inventory.confirmDelete)) return;
+    this.api.delete(`/raw-materials/${id}`).subscribe({
+      next: () => this.load(),
+    });
+  }
+
   save(): void {
     if (!this.form.name.trim()) return;
     this.saving.set(true);
-    this.api.post('/raw-materials', this.form).subscribe({
+    const editId = this.editingId();
+    const req = editId
+      ? this.api.patch(`/raw-materials/${editId}`, this.form)
+      : this.api.post('/raw-materials', this.form);
+
+    req.subscribe({
       next: () => {
         this.saving.set(false);
         this.showModal.set(false);

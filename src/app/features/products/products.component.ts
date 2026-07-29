@@ -56,9 +56,11 @@ import { AR } from '../../core/i18n/ar';
               <span class="product-card__price">
                 {{ ar.dashboard.currency }} {{ product.price | number:'1.2-2' }}
               </span>
-              <gmn-button variant="ghost" size="sm" (clicked)="openImageReplace(product)">
-                {{ ar.products.changeImage }}
-              </gmn-button>
+              <div class="product-card__actions">
+                <gmn-button variant="ghost" size="sm" (clicked)="openEdit(product)">{{ ar.products.edit }}</gmn-button>
+                <gmn-button variant="ghost" size="sm" (clicked)="openImageReplace(product)">{{ ar.products.changeImage }}</gmn-button>
+                <gmn-button variant="danger" size="sm" (clicked)="confirmDelete(product)">{{ ar.products.delete }}</gmn-button>
+              </div>
             </div>
           </gmn-card>
         } @empty {
@@ -69,7 +71,7 @@ import { AR } from '../../core/i18n/ar';
 
     <gmn-modal
       [open]="showModal()"
-      [title]="ar.products.add"
+      [title]="editingId() ? ar.products.edit : ar.products.add"
       size="md"
       (closed)="closeModal()"
     >
@@ -96,19 +98,21 @@ import { AR } from '../../core/i18n/ar';
           <gmn-input [label]="ar.products.price" type="number" [(ngModel)]="form.price" />
           <gmn-input [label]="ar.products.barcode" [(ngModel)]="form.barcode" />
         </div>
-        <div class="product-form__field">
-          <label>{{ ar.products.image }}</label>
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            class="product-form__file"
-            (change)="onFileSelected($event)"
-          />
-          @if (previewUrl()) {
-            <img class="product-form__preview" [src]="previewUrl()!" [alt]="ar.products.image" />
-          }
-          <small>{{ ar.products.imageHint }}</small>
-        </div>
+        @if (!editingId()) {
+          <div class="product-form__field">
+            <label>{{ ar.products.image }}</label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              class="product-form__file"
+              (change)="onFileSelected($event)"
+            />
+            @if (previewUrl()) {
+              <img class="product-form__preview" [src]="previewUrl()!" [alt]="ar.products.image" />
+            }
+            <small>{{ ar.products.imageHint }}</small>
+          </div>
+        }
         @if (formError()) {
           <p class="product-form__error">{{ formError() }}</p>
         }
@@ -212,6 +216,11 @@ import { AR } from '../../core/i18n/ar';
       font-weight: 700;
       color: var(--text-accent);
     }
+    .product-card__actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
     .product-form {
       display: flex;
       flex-direction: column;
@@ -284,6 +293,7 @@ export class ProductsComponent implements OnInit {
   previewUrl = signal<string | null>(null);
   replacePreviewUrl = signal<string | null>(null);
   imageTarget = signal<Product | null>(null);
+  editingId = signal<string | null>(null);
 
   private selectedFile: File | null = null;
   private replaceFile: File | null = null;
@@ -316,6 +326,7 @@ export class ProductsComponent implements OnInit {
   }
 
   openNew(): void {
+    this.editingId.set(null);
     this.form = {
       name: '',
       category: ProductCategory.BREAD,
@@ -330,8 +341,32 @@ export class ProductsComponent implements OnInit {
     this.showModal.set(true);
   }
 
+  openEdit(product: Product): void {
+    this.editingId.set(product._id);
+    this.form = {
+      name: product.name,
+      category: product.category,
+      sellType: product.sellType,
+      price: product.price,
+      barcode: product.barcode ?? '',
+    };
+    this.selectedFile = null;
+    this.revokePreview(this.previewUrl());
+    this.previewUrl.set(null);
+    this.formError.set('');
+    this.showModal.set(true);
+  }
+
+  confirmDelete(product: Product): void {
+    if (!confirm(AR.products.confirmDelete)) return;
+    this.api.delete(`/products/${product._id}`).subscribe({
+      next: () => this.load(),
+    });
+  }
+
   closeModal(): void {
     this.showModal.set(false);
+    this.editingId.set(null);
     this.revokePreview(this.previewUrl());
     this.previewUrl.set(null);
     this.selectedFile = null;
@@ -377,6 +412,35 @@ export class ProductsComponent implements OnInit {
       this.formError.set(this.ar.products.nameRequired);
       return;
     }
+
+    const editId = this.editingId();
+    if (editId) {
+      this.saving.set(true);
+      this.api
+        .patch<Product>(`/products/${editId}`, {
+          name: this.form.name.trim(),
+          category: this.form.category,
+          sellType: this.form.sellType,
+          price: this.form.price,
+          barcode: this.form.barcode.trim() || undefined,
+        })
+        .subscribe({
+          next: () => {
+            this.saving.set(false);
+            this.closeModal();
+            this.load();
+          },
+          error: (err: { error?: { message?: string | string[] } }) => {
+            this.saving.set(false);
+            const msg = err.error?.message;
+            this.formError.set(
+              Array.isArray(msg) ? msg.join('، ') : msg || this.ar.products.saveError,
+            );
+          },
+        });
+      return;
+    }
+
     if (!this.selectedFile) {
       this.formError.set(this.ar.products.imageRequired);
       return;

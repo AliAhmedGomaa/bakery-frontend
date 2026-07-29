@@ -8,10 +8,12 @@ export enum Role {
 }
 
 export interface User {
+  _id?: string;
   id: string;
   name: string;
   mobile: string;
   role: Role;
+  isActive?: boolean;
 }
 
 export interface AuthResponse {
