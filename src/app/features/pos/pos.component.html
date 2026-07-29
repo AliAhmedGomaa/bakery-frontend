@@ -171,12 +171,55 @@
 <gmn-modal
   [open]="showPayment()"
   [title]="ar.pos.completeSale"
-  [subtitle]="ar.pos.total + ': ' + ar.dashboard.currency + ' ' + cartTotal().toFixed(2)"
+  [subtitle]="cartItemCount() + ' ' + ar.pos.items"
   size="sm"
   (closed)="showPayment.set(false)"
 >
   <div class="payment-modal">
-    <p>{{ cartItemCount() }} {{ ar.pos.items }}</p>
+    <div class="payment-modal__summary">
+      <div class="payment-modal__table-wrap">
+        <table class="payment-modal__table">
+          <thead>
+            <tr>
+              <th>{{ ar.pos.item }}</th>
+              <th>{{ ar.pos.qty }}</th>
+              <th>{{ ar.pos.subtotal }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of cart(); track $index) {
+              <tr>
+                <td>
+                  <strong>{{ item.product.name }}</strong>
+                </td>
+                <td>
+                  @if (item.weightInGrams !== null) {
+                    {{ formatWeightKg(item.weightInGrams) }} {{ ar.pos.kg }}
+                  } @else {
+                    {{ item.quantity }}
+                  }
+                </td>
+                <td>{{ item.subtotal | number:'1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="payment-modal__totals">
+        @if (discount() > 0) {
+          <div class="payment-modal__total-row">
+            <span>{{ ar.pos.discount }}</span>
+            <span>− {{ ar.dashboard.currency }} {{ discount() | number:'1.2-2' }}</span>
+          </div>
+        }
+        <div class="payment-modal__total-row payment-modal__total-row--grand">
+          <span>{{ ar.pos.total }}</span>
+          <span>{{ ar.dashboard.currency }} {{ cartTotal() | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+
     <div class="payment-modal__actions">
       <gmn-button
         variant="primary"
