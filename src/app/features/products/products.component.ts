@@ -278,6 +278,18 @@ import { AR } from '../../core/i18n/ar';
       font-size: 0.8125rem;
       font-weight: 600;
     }
+    @media (max-width: 640px) {
+      .products__header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .products__grid {
+        grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+      }
+      .product-form__row {
+        grid-template-columns: 1fr;
+      }
+    }
   `],
 })
 export class ProductsComponent implements OnInit {

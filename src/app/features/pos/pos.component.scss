@@ -403,3 +403,37 @@
     width: 100%;
   }
 }
+
+@media (max-width: 960px) {
+  .pos {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100dvh - 5.5rem);
+    margin: -1rem;
+
+    &__products {
+      padding: 1rem;
+      min-height: 45vh;
+    }
+
+    &__cart {
+      width: 100%;
+      border-inline-start: none;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    &__grid {
+      grid-template-columns: repeat(auto-fill, minmax(7.25rem, 1fr));
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .pos {
+    margin: -0.875rem;
+
+    &__product-card {
+      padding: 0.625rem;
+    }
+  }
+}

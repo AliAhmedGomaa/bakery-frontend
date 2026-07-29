@@ -1,11 +1,14 @@
 import { Component, computed, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { filter } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../core/services/auth.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { BrandingService } from '../../core/branding/branding.service';
 import { Permission } from '../../core/models/types';
 import { AR } from '../../core/i18n/ar';
 import { InstallAppButtonComponent } from '../../shared/components/install-app-button/install-app-button.component';
+import { LayoutNavService } from '../layout-nav.service';
 
 interface NavItem {
   label: string;
@@ -19,7 +22,7 @@ interface NavItem {
   standalone: true,
   imports: [RouterLink, RouterLinkActive, InstallAppButtonComponent],
   template: `
-    <aside class="sidebar">
+    <aside class="sidebar" [class.sidebar--open]="nav.open()">
       <div class="sidebar__brand">
         @if (branding.branding().logoUrl; as logo) {
           <img class="sidebar__logo-img" [src]="logo" [alt]="appName()" />
@@ -27,6 +30,14 @@ interface NavItem {
           <span class="sidebar__logo">🍞</span>
         }
         <span class="sidebar__title">{{ appName() }}</span>
+        <button
+          type="button"
+          class="sidebar__close"
+          [attr.aria-label]="ar.nav.closeMenu"
+          (click)="nav.hide()"
+        >
+          ✕
+        </button>
       </div>
 
       <nav class="sidebar__nav">
@@ -35,6 +46,7 @@ interface NavItem {
             class="sidebar__link"
             [routerLink]="item.route"
             routerLinkActive="sidebar__link--active"
+            (click)="nav.hide()"
           >
             <span class="sidebar__link-icon">{{ item.icon }}</span>
             <span>{{ item.label }}</span>
@@ -71,7 +83,18 @@ export class SidebarComponent {
   auth = inject(AuthService);
   theme = inject(ThemeService);
   branding = inject(BrandingService);
+  nav = inject(LayoutNavService);
+  private router = inject(Router);
   readonly ar = AR;
+
+  constructor() {
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => this.nav.hide());
+  }
 
   appName = computed(
     () => this.branding.branding().appName?.trim() || AR.appName,

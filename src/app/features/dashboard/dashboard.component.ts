@@ -227,9 +227,34 @@ interface ProductionBatchRow {
       .dash__charts {
         grid-template-columns: 1fr;
       }
+      .dash__header {
+        flex-direction: column;
+        align-items: stretch;
+      }
       .dash__presets,
       .dash__dates {
         justify-content: flex-start;
+      }
+      .dash__dates {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .dash__dates label,
+      .dash__date {
+        width: 100%;
+        min-width: 0;
+      }
+      .dash__date {
+        min-width: 0;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .dash__header h1 {
+        font-size: 1.25rem;
+      }
+      .kpi-value {
+        font-size: 1.5rem;
       }
     }
   `],

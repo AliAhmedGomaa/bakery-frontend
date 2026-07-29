@@ -43,6 +43,8 @@ export const AR = {
     lightMode: 'الوضع الفاتح',
     darkMode: 'الوضع الداكن',
     logout: 'تسجيل الخروج',
+    menu: 'القائمة',
+    closeMenu: 'إغلاق القائمة',
   },
   dashboard: {
     welcome: 'مرحباً',

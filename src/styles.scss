@@ -160,6 +160,8 @@ html[data-theme='dark'] {
 html,
 body {
   min-height: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   font-family: 'Cairo', ui-sans-serif, system-ui, sans-serif;
   background: var(--bg-surface-container);
   color: var(--text-primary);
