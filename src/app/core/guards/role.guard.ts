@@ -1,32 +1,38 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { Role } from '../models/types';
+import { Permission } from '../models/types';
 
-function homeForRole(role: Role | null): string {
-  switch (role) {
-    case Role.CASHIER:
-      return '/pos';
-    case Role.HEAD_BAKER:
-      return '/production';
-    case Role.STOREKEEPER:
-      return '/inventory';
-    case Role.ACCOUNTANT:
-    case Role.MANAGER:
-    case Role.ADMIN:
-    default:
-      return '/dashboard';
-  }
+function homeForPermissions(permissions: Permission[], role: string | null): string {
+  if (role === 'ADMIN' || permissions.includes(Permission.DASHBOARD)) return '/dashboard';
+  if (permissions.includes(Permission.POS)) return '/pos';
+  if (permissions.includes(Permission.PRODUCTION)) return '/production';
+  if (permissions.includes(Permission.INVENTORY)) return '/inventory';
+  if (permissions.includes(Permission.PRODUCTS)) return '/products';
+  return '/dashboard';
 }
 
-export function roleGuard(...roles: Role[]): CanActivateFn {
+export function permissionGuard(...required: Permission[]): CanActivateFn {
+  return () => {
+    const auth = inject(AuthService);
+    const router = inject(Router);
+
+    if (auth.hasPermission(...required)) return true;
+
+    router.navigateByUrl(homeForPermissions(auth.permissions(), auth.userRole()));
+    return false;
+  };
+}
+
+/** @deprecated use permissionGuard */
+export function roleGuard(...roles: string[]): CanActivateFn {
   return () => {
     const auth = inject(AuthService);
     const router = inject(Router);
 
     if (auth.hasRole(...roles)) return true;
 
-    router.navigateByUrl(homeForRole(auth.userRole()));
+    router.navigateByUrl(homeForPermissions(auth.permissions(), auth.userRole()));
     return false;
   };
 }

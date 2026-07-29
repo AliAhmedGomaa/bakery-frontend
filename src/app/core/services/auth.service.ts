@@ -4,7 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AuthResponse, User, Role } from '../models/types';
+import { AuthResponse, User, Permission } from '../models/types';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -18,6 +18,7 @@ export class AuthService {
   readonly user = this.userSignal.asReadonly();
   readonly isLoggedIn = computed(() => !!this.userSignal());
   readonly userRole = computed(() => this.userSignal()?.role ?? null);
+  readonly permissions = computed(() => this.userSignal()?.permissions ?? []);
 
   constructor(
     private http: HttpClient,
@@ -63,7 +64,16 @@ export class AuthService {
     );
   }
 
-  hasRole(...roles: Role[]): boolean {
+  hasPermission(...required: Permission[]): boolean {
+    const user = this.userSignal();
+    if (!user) return false;
+    if (user.role === 'ADMIN') return true;
+    const perms = user.permissions ?? [];
+    return required.some((p) => perms.includes(p));
+  }
+
+  /** @deprecated use hasPermission */
+  hasRole(...roles: string[]): boolean {
     const role = this.userSignal()?.role;
     return role ? roles.includes(role) : false;
   }

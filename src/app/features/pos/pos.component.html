@@ -23,11 +23,11 @@
       >
         {{ ar.pos.all }}
       </button>
-      @for (cat of categories; track cat) {
+      @for (cat of categories(); track cat.name) {
         <button
           class="pos__chip"
-          [class.pos__chip--active]="activeCategory() === cat"
-          (click)="setCategory(cat)"
+          [class.pos__chip--active]="activeCategory() === cat.name"
+          (click)="setCategory(cat.name)"
         >
           {{ categoryLabel(cat) }}
         </button>

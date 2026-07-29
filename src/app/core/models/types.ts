@@ -1,10 +1,33 @@
-export enum Role {
-  ADMIN = 'ADMIN',
-  MANAGER = 'MANAGER',
-  CASHIER = 'CASHIER',
-  HEAD_BAKER = 'HEAD_BAKER',
-  STOREKEEPER = 'STOREKEEPER',
-  ACCOUNTANT = 'ACCOUNTANT',
+export enum Permission {
+  DASHBOARD = 'dashboard',
+  POS = 'pos',
+  PRODUCTS = 'products',
+  PRODUCTION = 'production',
+  INVENTORY = 'inventory',
+  USERS = 'users',
+  BRANDING = 'branding',
+  CATEGORIES = 'categories',
+  ROLES = 'roles',
+}
+
+export const ALL_PERMISSIONS = Object.values(Permission);
+
+export interface AppRole {
+  _id: string;
+  code: string;
+  nameAr: string;
+  permissions: Permission[];
+  isSystem: boolean;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export interface Category {
+  _id: string;
+  name: string;
+  nameAr: string;
+  sortOrder: number;
+  isActive: boolean;
 }
 
 export interface User {
@@ -12,7 +35,9 @@ export interface User {
   id: string;
   name: string;
   mobile: string;
-  role: Role;
+  role: string;
+  roleNameAr?: string;
+  permissions?: Permission[];
   isActive?: boolean;
 }
 
@@ -28,12 +53,6 @@ export interface ApiResponse<T> {
   timestamp: string;
 }
 
-export enum ProductCategory {
-  BREAD = 'Bread',
-  PASTRY = 'Pastry',
-  BISCUITS = 'Biscuits',
-}
-
 export enum SellType {
   PIECE = 'PIECE',
   WEIGHT = 'WEIGHT',
@@ -42,7 +61,7 @@ export enum SellType {
 export interface Product {
   _id: string;
   name: string;
-  category: ProductCategory;
+  category: string;
   sellType: SellType;
   price: number;
   barcode?: string;

@@ -12,7 +12,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { OfflineStoreService } from '../../core/services/offline-store.service';
 import {
   Product,
-  ProductCategory,
+  Category,
   SellType,
   CartItem,
   PaymentType,
@@ -41,14 +41,14 @@ export class PosComponent implements OnInit {
   private offline = inject(OfflineStoreService);
 
   readonly ar = AR;
-  readonly categories = Object.values(ProductCategory);
+  readonly categories = signal<Category[]>([]);
   readonly isOnline = this.offline.isOnline;
   readonly queueCount = this.offline.queueCount;
   readonly imageUrl = productImageUrl;
 
   products = signal<Product[]>([]);
   searchQuery = signal('');
-  activeCategory = signal<ProductCategory | null>(null);
+  activeCategory = signal<string | null>(null);
   cart = signal<CartItem[]>([]);
   showPayment = signal(false);
   showWeightModal = signal(false);
@@ -79,14 +79,18 @@ export class PosComponent implements OnInit {
     this.api.get<Product[]>('/products').subscribe({
       next: (data) => this.products.set(data),
     });
+    this.api.get<Category[]>('/categories').subscribe({
+      next: (data) => this.categories.set(data.filter((c) => c.isActive)),
+      error: () => this.categories.set([]),
+    });
   }
 
-  setCategory(cat: ProductCategory | null): void {
+  setCategory(cat: string | null): void {
     this.activeCategory.set(cat);
   }
 
-  categoryLabel(cat: ProductCategory): string {
-    return AR.categories[cat] ?? cat;
+  categoryLabel(cat: Category): string {
+    return cat.nameAr || cat.name;
   }
 
   onSearch(value: string): void {

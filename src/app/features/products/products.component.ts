@@ -9,7 +9,7 @@ import {
   GmnModalComponent,
 } from '../../shared/components';
 import { ApiService } from '../../core/services/api.service';
-import { Product, ProductCategory, SellType } from '../../core/models/types';
+import { Category, Product, SellType } from '../../core/models/types';
 import { productImageUrl } from '../../core/utils/product-image';
 import { AR } from '../../core/i18n/ar';
 
@@ -81,8 +81,8 @@ import { AR } from '../../core/i18n/ar';
           <div class="product-form__field">
             <label>{{ ar.products.category }}</label>
             <select [(ngModel)]="form.category" class="product-form__select">
-              @for (cat of categories; track cat) {
-                <option [value]="cat">{{ categoryLabel(cat) }}</option>
+              @for (cat of categories(); track cat.name) {
+                <option [value]="cat.name">{{ cat.nameAr }}</option>
               }
             </select>
           </div>
@@ -283,9 +283,9 @@ export class ProductsComponent implements OnInit {
   private api = inject(ApiService);
   readonly ar = AR;
   readonly SellType = SellType;
-  readonly categories = Object.values(ProductCategory);
 
   products = signal<Product[]>([]);
+  categories = signal<Category[]>([]);
   showModal = signal(false);
   showImageModal = signal(false);
   saving = signal(false);
@@ -300,7 +300,7 @@ export class ProductsComponent implements OnInit {
 
   form = {
     name: '',
-    category: ProductCategory.BREAD,
+    category: '',
     sellType: SellType.PIECE,
     price: 0,
     barcode: '',
@@ -308,6 +308,10 @@ export class ProductsComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.api.get<Category[]>('/categories').subscribe({
+      next: (data) => this.categories.set(data.filter((c) => c.isActive)),
+      error: () => this.categories.set([]),
+    });
   }
 
   load(): void {
@@ -320,16 +324,15 @@ export class ProductsComponent implements OnInit {
     return productImageUrl(image);
   }
 
-  categoryLabel(cat: ProductCategory | string): string {
-    const key = cat as keyof typeof AR.categories;
-    return AR.categories[key] ?? String(cat);
+  categoryLabel(cat: string): string {
+    return this.categories().find((c) => c.name === cat)?.nameAr ?? cat;
   }
 
   openNew(): void {
     this.editingId.set(null);
     this.form = {
       name: '',
-      category: ProductCategory.BREAD,
+      category: this.categories()[0]?.name ?? '',
       sellType: SellType.PIECE,
       price: 0,
       barcode: '',

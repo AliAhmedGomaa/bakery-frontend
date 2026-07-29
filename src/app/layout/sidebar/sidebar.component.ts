@@ -3,7 +3,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { BrandingService } from '../../core/branding/branding.service';
-import { Role } from '../../core/models/types';
+import { Permission } from '../../core/models/types';
 import { AR } from '../../core/i18n/ar';
 import { InstallAppButtonComponent } from '../../shared/components/install-app-button/install-app-button.component';
 
@@ -11,7 +11,7 @@ interface NavItem {
   label: string;
   icon: string;
   route: string;
-  roles: Role[];
+  permission: Permission;
 }
 
 @Component({
@@ -78,19 +78,20 @@ export class SidebarComponent {
   );
 
   private allItems: NavItem[] = [
-    { label: AR.nav.dashboard, icon: '📊', route: '/dashboard', roles: [Role.ADMIN, Role.MANAGER, Role.ACCOUNTANT] },
-    { label: AR.nav.pos, icon: '🛒', route: '/pos', roles: [Role.ADMIN, Role.MANAGER, Role.CASHIER] },
-    { label: AR.nav.products, icon: '🥐', route: '/products', roles: [Role.ADMIN, Role.MANAGER] },
-    { label: AR.nav.production, icon: '🏭', route: '/production', roles: [Role.ADMIN, Role.MANAGER, Role.HEAD_BAKER] },
-    { label: AR.nav.inventory, icon: '📦', route: '/inventory', roles: [Role.ADMIN, Role.MANAGER, Role.STOREKEEPER] },
-    { label: AR.nav.users, icon: '👥', route: '/users', roles: [Role.ADMIN] },
-    { label: AR.nav.branding, icon: '🎨', route: '/branding', roles: [Role.ADMIN] },
+    { label: AR.nav.dashboard, icon: '📊', route: '/dashboard', permission: Permission.DASHBOARD },
+    { label: AR.nav.pos, icon: '🛒', route: '/pos', permission: Permission.POS },
+    { label: AR.nav.products, icon: '🥐', route: '/products', permission: Permission.PRODUCTS },
+    { label: AR.nav.categories, icon: '🏷️', route: '/categories', permission: Permission.CATEGORIES },
+    { label: AR.nav.production, icon: '🏭', route: '/production', permission: Permission.PRODUCTION },
+    { label: AR.nav.inventory, icon: '📦', route: '/inventory', permission: Permission.INVENTORY },
+    { label: AR.nav.users, icon: '👥', route: '/users', permission: Permission.USERS },
+    { label: AR.nav.roles, icon: '🔐', route: '/roles', permission: Permission.ROLES },
+    { label: AR.nav.branding, icon: '🎨', route: '/branding', permission: Permission.BRANDING },
   ];
 
   visibleItems = computed(() => {
-    const role = this.auth.userRole();
-    if (!role) return [];
-    return this.allItems.filter((item) => item.roles.includes(role));
+    if (!this.auth.isLoggedIn()) return [];
+    return this.allItems.filter((item) => this.auth.hasPermission(item.permission));
   });
 
   initials = computed(() => {
@@ -103,8 +104,8 @@ export class SidebarComponent {
   });
 
   roleLabel = computed(() => {
-    const role = this.auth.userRole();
-    return role ? AR.roles[role] : '';
+    const user = this.auth.user();
+    return user?.roleNameAr || user?.role || '';
   });
 
   toggleTheme(): void {

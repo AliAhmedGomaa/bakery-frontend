@@ -10,7 +10,7 @@ import {
   GmnTableColumn,
 } from '../../shared/components';
 import { ApiService } from '../../core/services/api.service';
-import { Role, User } from '../../core/models/types';
+import { AppRole, User } from '../../core/models/types';
 import { AR } from '../../core/i18n/ar';
 
 interface ManagedUser extends User {
@@ -78,8 +78,8 @@ interface ManagedUser extends User {
         <div class="user-form__field">
           <label>{{ ar.users.role }}</label>
           <select [(ngModel)]="form.role" class="user-form__select">
-            @for (role of roles; track role) {
-              <option [value]="role">{{ roleLabel(role) }}</option>
+            @for (role of activeRoles(); track role.code) {
+              <option [value]="role.code">{{ role.nameAr }}</option>
             }
           </select>
         </div>
@@ -162,9 +162,9 @@ interface ManagedUser extends User {
 export class UsersComponent implements OnInit {
   private api = inject(ApiService);
   readonly ar = AR;
-  readonly roles = Object.values(Role);
 
   users = signal<ManagedUser[]>([]);
+  roles = signal<AppRole[]>([]);
   showModal = signal(false);
   saving = signal(false);
   editingId = signal<string | null>(null);
@@ -172,7 +172,7 @@ export class UsersComponent implements OnInit {
   form = {
     name: '',
     mobile: '',
-    role: Role.CASHIER,
+    role: 'CASHIER',
     password: '',
     isActive: true,
   };
@@ -184,6 +184,8 @@ export class UsersComponent implements OnInit {
     { key: 'isActive', label: AR.users.status },
     { key: 'actions', label: AR.users.actions },
   ];
+
+  activeRoles = computed(() => this.roles().filter((r) => r.isActive));
 
   tableData = computed(() =>
     this.users().map((u) => ({
@@ -197,6 +199,10 @@ export class UsersComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.api.get<AppRole[]>('/roles').subscribe({
+      next: (data) => this.roles.set(data),
+      error: () => this.roles.set([]),
+    });
   }
 
   load(): void {
@@ -213,16 +219,20 @@ export class UsersComponent implements OnInit {
     });
   }
 
-  roleLabel(role: unknown): string {
-    return AR.roles[role as Role] ?? String(role);
+  roleLabel(code: unknown): string {
+    const value = String(code);
+    return this.roles().find((r) => r.code === value)?.nameAr ?? value;
   }
 
   openNew(): void {
     this.editingId.set(null);
+    const defaultRole = this.activeRoles().find((r) => r.code === 'CASHIER')?.code
+      ?? this.activeRoles()[0]?.code
+      ?? 'CASHIER';
     this.form = {
       name: '',
       mobile: '',
-      role: Role.CASHIER,
+      role: defaultRole,
       password: '',
       isActive: true,
     };

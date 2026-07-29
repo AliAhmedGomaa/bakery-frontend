@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
-import { roleGuard } from './core/guards/role.guard';
-import { Role } from './core/models/types';
+import { permissionGuard } from './core/guards/role.guard';
+import { Permission } from './core/models/types';
 
 export const routes: Routes = [
   {
@@ -19,25 +19,31 @@ export const routes: Routes = [
         path: 'dashboard',
         loadComponent: () =>
           import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
-        canActivate: [roleGuard(Role.ADMIN, Role.MANAGER, Role.ACCOUNTANT)],
+        canActivate: [permissionGuard(Permission.DASHBOARD)],
       },
       {
         path: 'pos',
         loadComponent: () =>
           import('./features/pos/pos.component').then((m) => m.PosComponent),
-        canActivate: [roleGuard(Role.ADMIN, Role.MANAGER, Role.CASHIER)],
+        canActivate: [permissionGuard(Permission.POS)],
       },
       {
         path: 'products',
         loadComponent: () =>
           import('./features/products/products.component').then((m) => m.ProductsComponent),
-        canActivate: [roleGuard(Role.ADMIN, Role.MANAGER)],
+        canActivate: [permissionGuard(Permission.PRODUCTS)],
+      },
+      {
+        path: 'categories',
+        loadComponent: () =>
+          import('./features/categories/categories.component').then((m) => m.CategoriesComponent),
+        canActivate: [permissionGuard(Permission.CATEGORIES)],
       },
       {
         path: 'production',
         loadComponent: () =>
           import('./features/production/production.component').then((m) => m.ProductionComponent),
-        canActivate: [roleGuard(Role.ADMIN, Role.MANAGER, Role.HEAD_BAKER)],
+        canActivate: [permissionGuard(Permission.PRODUCTION)],
         children: [
           { path: '', redirectTo: 'recipes', pathMatch: 'full' },
           {
@@ -60,13 +66,19 @@ export const routes: Routes = [
         path: 'inventory',
         loadComponent: () =>
           import('./features/inventory/inventory.component').then((m) => m.InventoryComponent),
-        canActivate: [roleGuard(Role.ADMIN, Role.MANAGER, Role.STOREKEEPER)],
+        canActivate: [permissionGuard(Permission.INVENTORY)],
       },
       {
         path: 'users',
         loadComponent: () =>
           import('./features/users/users.component').then((m) => m.UsersComponent),
-        canActivate: [roleGuard(Role.ADMIN)],
+        canActivate: [permissionGuard(Permission.USERS)],
+      },
+      {
+        path: 'roles',
+        loadComponent: () =>
+          import('./features/roles/roles.component').then((m) => m.RolesComponent),
+        canActivate: [permissionGuard(Permission.ROLES)],
       },
       {
         path: 'branding',
@@ -74,7 +86,7 @@ export const routes: Routes = [
           import('./features/settings/branding-settings.component').then(
             (m) => m.BrandingSettingsComponent,
           ),
-        canActivate: [roleGuard(Role.ADMIN)],
+        canActivate: [permissionGuard(Permission.BRANDING)],
       },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
