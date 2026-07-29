@@ -7,6 +7,7 @@ import {
   GmnCardComponent,
   GmnInputComponent,
   GmnModalComponent,
+  ConfirmDialogService,
 } from '../../shared/components';
 import { ApiService } from '../../core/services/api.service';
 import { Category, Product, SellType } from '../../core/models/types';
@@ -281,6 +282,7 @@ import { AR } from '../../core/i18n/ar';
 })
 export class ProductsComponent implements OnInit {
   private api = inject(ApiService);
+  private confirmDialog = inject(ConfirmDialogService);
   readonly ar = AR;
   readonly SellType = SellType;
 
@@ -360,8 +362,12 @@ export class ProductsComponent implements OnInit {
     this.showModal.set(true);
   }
 
-  confirmDelete(product: Product): void {
-    if (!confirm(AR.products.confirmDelete)) return;
+  async confirmDelete(product: Product): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      message: AR.products.confirmDelete,
+      confirmLabel: AR.products.delete,
+    });
+    if (!ok) return;
     this.api.delete(`/products/${product._id}`).subscribe({
       next: () => this.load(),
     });

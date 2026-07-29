@@ -9,6 +9,7 @@ import {
   GmnModalComponent,
   GmnTableComponent,
   GmnTableColumn,
+  ConfirmDialogService,
 } from '../../shared/components';
 import { ApiService } from '../../core/services/api.service';
 import { MaterialUnit, RawMaterial } from '../../core/models/types';
@@ -185,6 +186,7 @@ import { AR } from '../../core/i18n/ar';
 })
 export class InventoryComponent implements OnInit {
   private api = inject(ApiService);
+  private confirmDialog = inject(ConfirmDialogService);
   readonly ar = AR;
   readonly units = Object.values(MaterialUnit);
   readonly String = String;
@@ -264,8 +266,12 @@ export class InventoryComponent implements OnInit {
     this.showModal.set(true);
   }
 
-  confirmDelete(id: string): void {
-    if (!confirm(AR.inventory.confirmDelete)) return;
+  async confirmDelete(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      message: AR.inventory.confirmDelete,
+      confirmLabel: AR.inventory.delete,
+    });
+    if (!ok) return;
     this.api.delete(`/raw-materials/${id}`).subscribe({
       next: () => this.load(),
     });

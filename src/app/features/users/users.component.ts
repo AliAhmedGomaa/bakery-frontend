@@ -8,6 +8,7 @@ import {
   GmnModalComponent,
   GmnTableComponent,
   GmnTableColumn,
+  ConfirmDialogService,
 } from '../../shared/components';
 import { ApiService } from '../../core/services/api.service';
 import { AppRole, User } from '../../core/models/types';
@@ -161,6 +162,7 @@ interface ManagedUser extends User {
 })
 export class UsersComponent implements OnInit {
   private api = inject(ApiService);
+  private confirmDialog = inject(ConfirmDialogService);
   readonly ar = AR;
 
   users = signal<ManagedUser[]>([]);
@@ -253,8 +255,12 @@ export class UsersComponent implements OnInit {
     this.showModal.set(true);
   }
 
-  confirmDelete(id: unknown): void {
-    if (!confirm(AR.users.confirmDelete)) return;
+  async confirmDelete(id: unknown): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      message: AR.users.confirmDelete,
+      confirmLabel: AR.users.delete,
+    });
+    if (!ok) return;
     this.api.delete(`/users/${String(id)}`).subscribe({
       next: () => this.load(),
     });

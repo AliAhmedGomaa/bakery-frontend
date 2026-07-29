@@ -8,6 +8,7 @@ import {
   GmnModalComponent,
   GmnTableComponent,
   GmnTableColumn,
+  ConfirmDialogService,
 } from '../../shared/components';
 import { ApiService } from '../../core/services/api.service';
 import { ALL_PERMISSIONS, AppRole, Permission } from '../../core/models/types';
@@ -181,6 +182,7 @@ import { AR } from '../../core/i18n/ar';
 })
 export class RolesComponent implements OnInit {
   private api = inject(ApiService);
+  private confirmDialog = inject(ConfirmDialogService);
   readonly ar = AR;
   readonly allPermissions = ALL_PERMISSIONS;
 
@@ -259,8 +261,12 @@ export class RolesComponent implements OnInit {
     this.showModal.set(true);
   }
 
-  confirmDelete(id: unknown): void {
-    if (!confirm(AR.rolesPage.confirmDelete)) return;
+  async confirmDelete(id: unknown): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      message: AR.rolesPage.confirmDelete,
+      confirmLabel: AR.rolesPage.delete,
+    });
+    if (!ok) return;
     this.api.delete(`/roles/${String(id)}`).subscribe({ next: () => this.load() });
   }
 

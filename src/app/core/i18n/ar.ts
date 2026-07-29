@@ -1,5 +1,11 @@
 export const AR = {
   appName: 'مخبز',
+  common: {
+    confirmTitle: 'تأكيد الحذف',
+    cancel: 'إلغاء',
+    delete: 'حذف',
+    confirm: 'تأكيد',
+  },
   login: {
     title: 'مخبز',
     subtitle: 'سجّل الدخول إلى حسابك',

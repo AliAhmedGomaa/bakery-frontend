@@ -9,6 +9,7 @@ import {
   GmnModalComponent,
   GmnTableComponent,
   GmnTableColumn,
+  ConfirmDialogService,
 } from '../../../shared/components';
 import { ApiService } from '../../../core/services/api.service';
 import {
@@ -359,6 +360,7 @@ interface IngredientDetail {
 })
 export class RecipeBuilderComponent implements OnInit {
   private api = inject(ApiService);
+  private confirmDialog = inject(ConfirmDialogService);
   readonly ar = AR;
 
   columns: GmnTableColumn[] = [
@@ -524,8 +526,12 @@ export class RecipeBuilderComponent implements OnInit {
     this.showModal.set(true);
   }
 
-  confirmDelete(id: unknown): void {
-    if (!confirm(AR.production.confirmDeleteRecipe)) return;
+  async confirmDelete(id: unknown): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      message: AR.production.confirmDeleteRecipe,
+      confirmLabel: AR.production.delete,
+    });
+    if (!ok) return;
     this.api.delete(`/recipes/${String(id)}`).subscribe({
       next: () => this.loadRecipes(),
     });

@@ -1,11 +1,12 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { SidebarComponent } from './sidebar/sidebar.component';
+import { GmnConfirmDialogComponent } from '../shared/components';
 
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [RouterOutlet, SidebarComponent],
+  imports: [RouterOutlet, SidebarComponent, GmnConfirmDialogComponent],
   template: `
     <div class="layout">
       <app-sidebar />
@@ -13,6 +14,7 @@ import { SidebarComponent } from './sidebar/sidebar.component';
         <router-outlet />
       </main>
     </div>
+    <gmn-confirm-dialog />
   `,
   styles: [`
     .layout {

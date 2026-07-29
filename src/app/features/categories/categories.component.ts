@@ -8,6 +8,7 @@ import {
   GmnModalComponent,
   GmnTableComponent,
   GmnTableColumn,
+  ConfirmDialogService,
 } from '../../shared/components';
 import { ApiService } from '../../core/services/api.service';
 import { Category } from '../../core/models/types';
@@ -129,6 +130,7 @@ import { AR } from '../../core/i18n/ar';
 })
 export class CategoriesComponent implements OnInit {
   private api = inject(ApiService);
+  private confirmDialog = inject(ConfirmDialogService);
   readonly ar = AR;
 
   categories = signal<Category[]>([]);
@@ -191,8 +193,12 @@ export class CategoriesComponent implements OnInit {
     this.showModal.set(true);
   }
 
-  confirmDelete(id: unknown): void {
-    if (!confirm(AR.categoriesPage.confirmDelete)) return;
+  async confirmDelete(id: unknown): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      message: AR.categoriesPage.confirmDelete,
+      confirmLabel: AR.categoriesPage.delete,
+    });
+    if (!ok) return;
     this.api.delete(`/categories/${String(id)}`).subscribe({ next: () => this.load() });
   }
 
