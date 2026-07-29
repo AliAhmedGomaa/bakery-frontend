@@ -1,0 +1,46 @@
+.gmn-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-xs);
+  transition:
+    box-shadow var(--duration-normal) var(--ease-smooth),
+    transform var(--duration-normal) var(--ease-smooth),
+    border-color var(--duration-normal) var(--ease-smooth);
+
+  &--no-padding {
+    padding: 0;
+  }
+
+  &--flat {
+    box-shadow: none;
+    border-color: var(--border-default);
+  }
+
+  &--elevated {
+    box-shadow: var(--shadow-md);
+    border-color: transparent;
+  }
+
+  &--glass {
+    background: var(--bg-surface-glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-color: var(--border-subtle);
+    box-shadow: var(--shadow-sm);
+  }
+
+  &--interactive {
+    cursor: pointer;
+
+    &:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-strong);
+    }
+
+    &:active {
+      transform: scale(0.99);
+    }
+  }
+}

@@ -1,0 +1,174 @@
+<div class="pos">
+  <section class="pos__products">
+    @if (!isOnline()) {
+      <div class="pos__offline-bar">
+        <gmn-badge variant="warning" [dot]="true">{{ ar.pos.offline }} — {{ queueCount() }} {{ ar.pos.queued }}</gmn-badge>
+      </div>
+    }
+
+    <div class="pos__search">
+      <gmn-input
+        [placeholder]="ar.pos.search"
+        (valueChange)="onSearch($event)"
+      >
+        <span prefix>🔍</span>
+      </gmn-input>
+    </div>
+
+    <div class="pos__filters">
+      <button
+        class="pos__chip"
+        [class.pos__chip--active]="activeCategory() === null"
+        (click)="setCategory(null)"
+      >
+        {{ ar.pos.all }}
+      </button>
+      @for (cat of categories; track cat) {
+        <button
+          class="pos__chip"
+          [class.pos__chip--active]="activeCategory() === cat"
+          (click)="setCategory(cat)"
+        >
+          {{ categoryLabel(cat) }}
+        </button>
+      }
+    </div>
+
+    <div class="pos__grid">
+      @for (product of filteredProducts(); track product._id) {
+        <button class="pos__product-card" (click)="addToCart(product)">
+          <span class="pos__product-image">
+            @if (imageUrl(product.image); as src) {
+              <img [src]="src" [alt]="product.name" />
+            } @else {
+              <span class="pos__product-placeholder">🍞</span>
+            }
+          </span>
+          <span class="pos__product-name">{{ product.name }}</span>
+          <span class="pos__product-meta">
+            @if (product.sellType === 'WEIGHT') {
+              <gmn-badge variant="info" size="sm">{{ ar.pos.byWeight }}</gmn-badge>
+            }
+          </span>
+          <span class="pos__product-price">{{ ar.dashboard.currency }} {{ product.price }}</span>
+        </button>
+      } @empty {
+        <div class="pos__empty">{{ ar.pos.noProducts }}</div>
+      }
+    </div>
+  </section>
+
+  <aside class="pos__cart">
+    <div class="pos__cart-header">
+      <h2>{{ ar.pos.currentOrder }}</h2>
+      @if (cart().length > 0) {
+        <gmn-button variant="ghost" size="sm" (clicked)="clearCart()">{{ ar.pos.clear }}</gmn-button>
+      }
+    </div>
+
+    <div class="pos__cart-items">
+      @for (item of cart(); track $index; let idx = $index) {
+        <div class="pos__cart-item">
+          <div class="pos__cart-item-info">
+            <span class="pos__cart-item-name">{{ item.product.name }}</span>
+            @if (item.weightInGrams !== null) {
+              <span class="pos__cart-item-weight">{{ item.weightInGrams }} جرام</span>
+            }
+          </div>
+
+          <div class="pos__cart-item-controls">
+            @if (item.weightInGrams === null) {
+              <button class="pos__qty-btn" (click)="updateQuantity(idx, -1)">−</button>
+              <span class="pos__qty">{{ item.quantity }}</span>
+              <button class="pos__qty-btn" (click)="updateQuantity(idx, 1)">+</button>
+            } @else {
+              <button class="pos__qty-btn pos__qty-btn--remove" (click)="removeFromCart(idx)">✕</button>
+            }
+          </div>
+
+          <span class="pos__cart-item-subtotal">{{ item.subtotal | number:'1.2-2' }}</span>
+        </div>
+      } @empty {
+        <div class="pos__cart-empty">
+          <p>{{ ar.pos.noItems }}</p>
+          <span>{{ ar.pos.tapToAdd }}</span>
+        </div>
+      }
+    </div>
+
+    @if (cart().length > 0) {
+      <div class="pos__discount">
+        <gmn-input
+          [label]="ar.pos.discount"
+          type="number"
+          [ngModel]="discount()"
+          (ngModelChange)="discount.set($event)"
+        />
+      </div>
+    }
+
+    <div class="pos__cart-footer">
+      <div class="pos__total">
+        <span>{{ ar.pos.total }}</span>
+        <span class="pos__total-value">{{ ar.dashboard.currency }} {{ cartTotal() | number:'1.2-2' }}</span>
+      </div>
+
+      <div class="pos__pay-actions">
+        <gmn-button
+          variant="primary"
+          size="lg"
+          [disabled]="cart().length === 0"
+          (clicked)="showPayment.set(true)"
+        >
+          🧾 {{ ar.pos.payNow }}
+        </gmn-button>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<gmn-modal
+  [open]="showWeightModal()"
+  [title]="ar.pos.enterWeight"
+  [subtitle]="weightProduct()?.name ?? ''"
+  size="sm"
+  (closed)="showWeightModal.set(false)"
+>
+  <div class="weight-modal">
+    <gmn-input
+      [label]="ar.pos.weightGrams"
+      type="number"
+      [placeholder]="ar.pos.weightPlaceholder"
+      [(ngModel)]="weightInput"
+    />
+    <p class="weight-modal__preview">
+      @if (weightInput && +weightInput > 0) {
+        {{ ar.pos.price }}: {{ ar.dashboard.currency }} {{ ((+weightInput / 1000) * (weightProduct()?.price ?? 0)) | number:'1.2-2' }}
+      }
+    </p>
+  </div>
+  <div footer>
+    <gmn-button variant="ghost" (clicked)="showWeightModal.set(false)">{{ ar.pos.cancel }}</gmn-button>
+    <gmn-button variant="primary" (clicked)="confirmWeight()">{{ ar.pos.addToCart }}</gmn-button>
+  </div>
+</gmn-modal>
+
+<gmn-modal
+  [open]="showPayment()"
+  [title]="ar.pos.completeSale"
+  [subtitle]="ar.pos.total + ': ' + ar.dashboard.currency + ' ' + cartTotal().toFixed(2)"
+  size="sm"
+  (closed)="showPayment.set(false)"
+>
+  <div class="payment-modal">
+    <p>{{ cartItemCount() }} {{ ar.pos.items }}</p>
+    <gmn-button
+      variant="primary"
+      size="lg"
+      [loading]="processing()"
+      (clicked)="submitSale()"
+    >
+      🧾 {{ ar.pos.confirmSale }}
+    </gmn-button>
+  </div>
+</gmn-modal>

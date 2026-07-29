@@ -1,0 +1,218 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
+
+/* ═══════════════════════════════════════════════
+   Gemini-Inspired Design Tokens — Light Mode
+   ═══════════════════════════════════════════════ */
+:root {
+  /* — Brand — */
+  --brand: #78350f;
+  --brand-soft: rgba(120, 53, 15, 0.08);
+  --accent: #d97706;
+  --accent-hover: #b45309;
+  --accent-soft: rgba(217, 119, 6, 0.12);
+  --warm: #c2410c;
+
+  /* — Surfaces — */
+  --bg-surface: #ffffff;
+  --bg-surface-container: #fefce8;
+  --bg-surface-container-high: #fef9e7;
+  --bg-surface-elevated: #ffffff;
+  --bg-surface-sunken: #f5f5f4;
+  --bg-surface-glass: rgba(255, 255, 255, 0.72);
+
+  /* — Text — */
+  --text-primary: #1c1917;
+  --text-secondary: #44403c;
+  --text-muted: #78716c;
+  --text-faint: #a8a29e;
+  --text-inverse: #fafaf9;
+  --text-accent: #b45309;
+  --text-danger: #991b1b;
+  --text-success: #14532d;
+  --text-warning: #92400e;
+  --text-info: #1e3a8a;
+
+  /* — Borders — */
+  --border-subtle: rgba(231, 229, 228, 0.50);
+  --border-default: #e7e5e4;
+  --border-strong: #d6d3d1;
+  --border-focus: #d97706;
+
+  /* — Shadows — */
+  --shadow-xs: 0 1px 2px rgba(28, 25, 23, 0.04);
+  --shadow-sm: 0 1px 3px rgba(28, 25, 23, 0.04), 0 4px 12px rgba(28, 25, 23, 0.04);
+  --shadow-md: 0 2px 4px rgba(28, 25, 23, 0.03), 0 8px 24px rgba(28, 25, 23, 0.06);
+  --shadow-lg: 0 4px 8px rgba(28, 25, 23, 0.04), 0 16px 48px rgba(28, 25, 23, 0.08);
+  --shadow-focus: 0 0 0 3px rgba(217, 119, 6, 0.25);
+
+  /* — Overlay — */
+  --overlay: rgba(28, 25, 23, 0.35);
+
+  /* — Status — */
+  --status-success-bg: #f0fdf4;
+  --status-success-border: #bbf7d0;
+  --status-success-text: #14532d;
+  --status-danger-bg: #fef2f2;
+  --status-danger-border: #fecaca;
+  --status-danger-text: #991b1b;
+  --status-warning-bg: #fffbeb;
+  --status-warning-border: #fde68a;
+  --status-warning-text: #92400e;
+  --status-info-bg: #eff6ff;
+  --status-info-border: #bfdbfe;
+  --status-info-text: #1e3a8a;
+  --status-neutral-bg: #f5f5f4;
+  --status-neutral-border: #e7e5e4;
+  --status-neutral-text: #44403c;
+
+  /* — Geometry — */
+  --radius-xs: 0.5rem;
+  --radius-sm: 0.75rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+  --radius-full: 9999px;
+
+  /* — Motion — */
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 350ms;
+}
+
+/* ═══════════════════════════════════════════════
+   Dark Mode
+   ═══════════════════════════════════════════════ */
+html[data-theme='dark'] {
+  --brand: #fde68a;
+  --brand-soft: rgba(253, 230, 138, 0.10);
+  --accent: #fbbf24;
+  --accent-hover: #f59e0b;
+  --accent-soft: rgba(251, 191, 36, 0.14);
+  --warm: #fb923c;
+
+  --bg-surface: #1c1917;
+  --bg-surface-container: #292524;
+  --bg-surface-container-high: #33302e;
+  --bg-surface-elevated: #3a3533;
+  --bg-surface-sunken: #141211;
+  --bg-surface-glass: rgba(28, 25, 23, 0.72);
+
+  --text-primary: #fafaf9;
+  --text-secondary: #d6d3d1;
+  --text-muted: #a8a29e;
+  --text-faint: #78716c;
+  --text-inverse: #1c1917;
+  --text-accent: #fbbf24;
+  --text-danger: #fca5a5;
+  --text-success: #86efac;
+  --text-warning: #fcd34d;
+  --text-info: #93c5fd;
+
+  --border-subtle: rgba(68, 64, 60, 0.50);
+  --border-default: #44403c;
+  --border-strong: #57534e;
+  --border-focus: #fbbf24;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.20);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.14), 0 8px 24px rgba(0, 0, 0, 0.18);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.16), 0 16px 48px rgba(0, 0, 0, 0.24);
+  --shadow-focus: 0 0 0 3px rgba(251, 191, 36, 0.30);
+
+  --overlay: rgba(0, 0, 0, 0.55);
+
+  --status-success-bg: rgba(22, 101, 52, 0.20);
+  --status-success-border: rgba(134, 239, 172, 0.25);
+  --status-success-text: #86efac;
+  --status-danger-bg: rgba(153, 27, 27, 0.20);
+  --status-danger-border: rgba(252, 165, 165, 0.25);
+  --status-danger-text: #fca5a5;
+  --status-warning-bg: rgba(146, 64, 14, 0.20);
+  --status-warning-border: rgba(252, 211, 77, 0.25);
+  --status-warning-text: #fcd34d;
+  --status-info-bg: rgba(30, 58, 138, 0.20);
+  --status-info-border: rgba(147, 197, 253, 0.25);
+  --status-info-text: #93c5fd;
+  --status-neutral-bg: rgba(68, 64, 60, 0.30);
+  --status-neutral-border: rgba(87, 83, 78, 0.40);
+  --status-neutral-text: #d6d3d1;
+
+  color-scheme: dark;
+}
+
+/* ═══════════════════════════════════════════════
+   Base Resets
+   ═══════════════════════════════════════════════ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html,
+body {
+  min-height: 100%;
+  font-family: 'Cairo', ui-sans-serif, system-ui, sans-serif;
+  background: var(--bg-surface-container);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  direction: rtl;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--brand);
+}
+
+/* ═══════════════════════════════════════════════
+   Scrollbar
+   ═══════════════════════════════════════════════ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
+}
+
+/* ═══════════════════════════════════════════════
+   Keyframes
+   ═══════════════════════════════════════════════ */
+@keyframes gmn-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes gmn-slide-up {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes gmn-scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes gmn-spinner {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes gmn-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
