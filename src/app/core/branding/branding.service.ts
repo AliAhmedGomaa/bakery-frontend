@@ -22,9 +22,10 @@ export class BrandingService {
       .pipe(catchError(() => of(null)))
       .subscribe((data) => {
         if (!data) return;
-        this.branding.set(data);
-        this.writeCache(data);
-        this.apply(data);
+        const normalized = this.normalize(data);
+        this.branding.set(normalized);
+        this.writeCache(normalized);
+        this.apply(normalized);
       });
   }
 
@@ -37,9 +38,10 @@ export class BrandingService {
       .patch<PlatformBranding>(`${environment.apiBaseUrl}/admin/branding`, patch)
       .pipe(
         tap((data) => {
-          this.branding.set(data);
-          this.writeCache(data);
-          this.apply(data);
+          const normalized = this.normalize(data);
+          this.branding.set(normalized);
+          this.writeCache(normalized);
+          this.apply(normalized);
         }),
       );
   }
@@ -51,9 +53,10 @@ export class BrandingService {
       .post<PlatformBranding>(`${environment.apiBaseUrl}/admin/branding/logo`, fd)
       .pipe(
         tap((data) => {
-          this.branding.set(data);
-          this.writeCache(data);
-          this.apply(data);
+          const normalized = this.normalize(data);
+          this.branding.set(normalized);
+          this.writeCache(normalized);
+          this.apply(normalized);
         }),
       );
   }
@@ -77,18 +80,72 @@ export class BrandingService {
     const titleBase = data.appName?.trim() || DEFAULT_BRANDING.appName;
     document.title = `${titleBase} — نظام إدارة المخابز`;
 
-    const icon = data.faviconUrl || data.logoUrl;
+    const themeMeta = document.querySelector<HTMLMetaElement>("meta[name='theme-color']");
+    if (themeMeta) themeMeta.content = data.brandColor || DEFAULT_BRANDING.brandColor;
+
+    // Tab icon always follows the brand logo (faviconUrl is kept as a fallback)
+    const icon = data.logoUrl || data.faviconUrl;
     if (icon) this.setFavicon(icon);
   }
 
+  private normalize(data: PlatformBranding): PlatformBranding {
+    return {
+      ...data,
+      logoUrl: this.toAbsoluteAssetUrl(data.logoUrl),
+      faviconUrl: this.toAbsoluteAssetUrl(data.faviconUrl || data.logoUrl),
+    };
+  }
+
+  private toAbsoluteAssetUrl(url?: string): string {
+    if (!url?.trim()) return '';
+    const value = url.trim();
+    if (/^https?:\/\//i.test(value) || value.startsWith('data:') || value.startsWith('blob:')) {
+      return value;
+    }
+    const base = environment.assetsBaseUrl.replace(/\/$/, '');
+    return value.startsWith('/') ? `${base}${value}` : `${base}/${value}`;
+  }
+
   private setFavicon(url: string): void {
-    let link = document.querySelector<HTMLLinkElement>("link[rel='icon']");
+    const href = this.withCacheBust(url);
+    const type = this.mimeFromUrl(url);
+
+    this.upsertIconLink("link[rel='icon']", 'icon', href, type);
+    this.upsertIconLink("link[rel='shortcut icon']", 'shortcut icon', href, type);
+    this.upsertIconLink("link[rel='apple-touch-icon']", 'apple-touch-icon', href, type);
+  }
+
+  private upsertIconLink(
+    selector: string,
+    rel: string,
+    href: string,
+    type: string,
+  ): void {
+    let link = document.querySelector<HTMLLinkElement>(selector);
     if (!link) {
       link = document.createElement('link');
-      link.rel = 'icon';
+      link.rel = rel;
       document.head.appendChild(link);
     }
-    link.href = url;
+    link.type = type;
+    // Force browsers to refresh cached favicon
+    link.href = href;
+  }
+
+  private mimeFromUrl(url: string): string {
+    const path = url.split('?')[0].toLowerCase();
+    if (path.endsWith('.svg')) return 'image/svg+xml';
+    if (path.endsWith('.png')) return 'image/png';
+    if (path.endsWith('.webp')) return 'image/webp';
+    if (path.endsWith('.gif')) return 'image/gif';
+    if (path.endsWith('.jpg') || path.endsWith('.jpeg')) return 'image/jpeg';
+    if (path.endsWith('.ico')) return 'image/x-icon';
+    return 'image/png';
+  }
+
+  private withCacheBust(url: string): string {
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}v=${Date.now()}`;
   }
 
   private hexToRgba(hex: string, alpha: number): string {
@@ -106,7 +163,7 @@ export class BrandingService {
     try {
       const raw = localStorage.getItem(CACHE_KEY);
       if (!raw) return null;
-      return JSON.parse(raw) as PlatformBranding;
+      return this.normalize(JSON.parse(raw) as PlatformBranding);
     } catch {
       return null;
     }
