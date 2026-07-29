@@ -85,7 +85,7 @@
 
     .gmn-input-wrap--focused &,
     .gmn-input-wrap--filled & {
-      transform: translateY(-130%);
+      transform: translateY(calc(-130% - 4px));
       font-size: 0.6875rem;
       font-weight: 600;
       letter-spacing: 0.02em;
