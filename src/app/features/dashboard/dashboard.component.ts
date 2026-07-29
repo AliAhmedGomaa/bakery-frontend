@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { GmnCardComponent } from '../../shared/components';
+import { FormsModule } from '@angular/forms';
+import { GmnButtonComponent, GmnCardComponent } from '../../shared/components';
 import { ChartComponent, ChartDatum } from '../../shared/components/chart/chart.component';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
@@ -20,15 +21,44 @@ interface DashboardCharts {
   topProducts: ChartDatum[];
 }
 
+interface ProductionBatchRow {
+  date?: string;
+  createdAt?: string;
+}
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [GmnCardComponent, DecimalPipe, ChartComponent],
+  imports: [GmnCardComponent, GmnButtonComponent, DecimalPipe, ChartComponent, FormsModule],
   template: `
     <div class="dash">
       <div class="dash__header">
-        <h1>{{ ar.dashboard.welcome }}، {{ auth.user()?.name }}</h1>
-        <p>{{ ar.dashboard.subtitle }}</p>
+        <div>
+          <h1>{{ ar.dashboard.welcome }}، {{ auth.user()?.name }}</h1>
+          <p>{{ ar.dashboard.subtitle }}</p>
+        </div>
+
+        <div class="dash__filters">
+          <div class="dash__presets">
+            <button type="button" class="dash__preset" (click)="setPreset('today')">{{ ar.dashboard.presetToday }}</button>
+            <button type="button" class="dash__preset" (click)="setPreset('7')">{{ ar.dashboard.preset7 }}</button>
+            <button type="button" class="dash__preset" (click)="setPreset('30')">{{ ar.dashboard.preset30 }}</button>
+            <button type="button" class="dash__preset" (click)="setPreset('month')">{{ ar.dashboard.presetMonth }}</button>
+          </div>
+          <div class="dash__dates">
+            <label>
+              <span>{{ ar.dashboard.from }}</span>
+              <input type="date" [(ngModel)]="fromDate" class="dash__date" />
+            </label>
+            <label>
+              <span>{{ ar.dashboard.to }}</span>
+              <input type="date" [(ngModel)]="toDate" class="dash__date" />
+            </label>
+            <gmn-button variant="primary" size="sm" [loading]="loading()" (clicked)="applyRange()">
+              {{ ar.dashboard.apply }}
+            </gmn-button>
+          </div>
+        </div>
       </div>
 
       <div class="dash__grid">
@@ -92,7 +122,14 @@ interface DashboardCharts {
     </div>
   `,
   styles: [`
-    .dash__header { margin-bottom: 2rem; }
+    .dash__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
     .dash__header h1 {
       margin: 0;
       font-size: 1.5rem;
@@ -103,6 +140,59 @@ interface DashboardCharts {
       margin: 0.25rem 0 0;
       color: var(--text-muted);
       font-size: 0.875rem;
+    }
+    .dash__filters {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      align-items: stretch;
+    }
+    .dash__presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      justify-content: flex-end;
+    }
+    .dash__preset {
+      border: 1px solid var(--border-default);
+      background: var(--bg-surface-container-high);
+      color: var(--text-primary);
+      border-radius: 999px;
+      padding: 0.35rem 0.75rem;
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .dash__preset:hover {
+      border-color: var(--text-accent);
+      color: var(--text-accent);
+    }
+    .dash__dates {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: end;
+      justify-content: flex-end;
+    }
+    .dash__dates label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .dash__date {
+      height: 2.5rem;
+      padding: 0 0.75rem;
+      border-radius: var(--radius-xl);
+      border: 1.5px solid var(--border-default);
+      background: var(--bg-surface-container-high);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.875rem;
+      min-width: 10rem;
     }
     .dash__grid {
       display: grid;
@@ -137,6 +227,10 @@ interface DashboardCharts {
       .dash__charts {
         grid-template-columns: 1fr;
       }
+      .dash__presets,
+      .dash__dates {
+        justify-content: flex-start;
+      }
     }
   `],
 })
@@ -144,6 +238,12 @@ export class DashboardComponent implements OnInit {
   auth = inject(AuthService);
   private api = inject(ApiService);
   readonly ar = AR;
+
+  fromDate = '';
+  toDate = '';
+  loading = signal(false);
+
+  private batches = signal<ProductionBatchRow[]>([]);
 
   stats = signal<DashboardStats>({
     totalSales: 0,
@@ -160,20 +260,91 @@ export class DashboardComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.api.get<{ totalSales: number; orderCount: number }>('/sales/stats/today').subscribe({
-      next: (data) => this.stats.update((s) => ({ ...s, totalSales: data.totalSales, orderCount: data.orderCount })),
-    });
-    this.api.get<unknown[]>('/production-batches').subscribe({
-      next: (data) => this.stats.update((s) => ({ ...s, batchCount: data.length })),
-    });
+    this.setPreset('7', false);
     this.api.get<{ currentStock: number; minStockAlert: number }[]>('/raw-materials').subscribe({
       next: (data) => {
         const low = data.filter((m) => m.currentStock <= m.minStockAlert).length;
         this.stats.update((s) => ({ ...s, lowStockCount: low }));
       },
     });
-    this.api.get<DashboardCharts>('/sales/stats/charts').subscribe({
-      next: (data) => this.charts.set(data),
+    this.api.get<ProductionBatchRow[]>('/production-batches').subscribe({
+      next: (data) => {
+        this.batches.set(data);
+        this.updateBatchCount();
+      },
     });
+    this.applyRange();
+  }
+
+  setPreset(preset: 'today' | '7' | '30' | 'month', reload = true): void {
+    const today = new Date();
+    const to = this.formatDate(today);
+    let from = to;
+
+    if (preset === '7') {
+      const d = new Date(today);
+      d.setDate(d.getDate() - 6);
+      from = this.formatDate(d);
+    } else if (preset === '30') {
+      const d = new Date(today);
+      d.setDate(d.getDate() - 29);
+      from = this.formatDate(d);
+    } else if (preset === 'month') {
+      from = this.formatDate(new Date(today.getFullYear(), today.getMonth(), 1));
+    }
+
+    this.fromDate = from;
+    this.toDate = to;
+    if (reload) this.applyRange();
+  }
+
+  applyRange(): void {
+    if (!this.fromDate || !this.toDate) return;
+    if (this.fromDate > this.toDate) {
+      const swap = this.fromDate;
+      this.fromDate = this.toDate;
+      this.toDate = swap;
+    }
+
+    this.loading.set(true);
+    const params = { from: this.fromDate, to: this.toDate };
+
+    this.api.get<{ totalSales: number; orderCount: number }>('/sales/stats/today', params).subscribe({
+      next: (data) => {
+        this.stats.update((s) => ({
+          ...s,
+          totalSales: data.totalSales,
+          orderCount: data.orderCount,
+        }));
+        this.updateBatchCount();
+      },
+    });
+
+    this.api.get<DashboardCharts>('/sales/stats/charts', params).subscribe({
+      next: (data) => {
+        this.charts.set(data);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false),
+    });
+  }
+
+  private updateBatchCount(): void {
+    const from = this.fromDate;
+    const to = this.toDate;
+    const count = this.batches().filter((b) => {
+      const raw = b.date || b.createdAt;
+      if (!raw) return false;
+      const key = this.formatDate(new Date(raw));
+      return key >= from && key <= to;
+    }).length;
+    this.stats.update((s) => ({ ...s, batchCount: count }));
+  }
+
+  private formatDate(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 }

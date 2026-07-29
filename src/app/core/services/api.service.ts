@@ -9,8 +9,17 @@ export class ApiService {
 
   constructor(private http: HttpClient) {}
 
-  get<T>(path: string): Observable<T> {
-    return this.http.get<T>(`${this.base}${path}`);
+  get<T>(path: string, params?: Record<string, string | number | boolean | undefined | null>): Observable<T> {
+    const cleaned: Record<string, string> = {};
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value === undefined || value === null || value === '') continue;
+        cleaned[key] = String(value);
+      }
+    }
+    return this.http.get<T>(`${this.base}${path}`, {
+      params: cleaned,
+    });
   }
 
   post<T>(path: string, body: unknown): Observable<T> {
