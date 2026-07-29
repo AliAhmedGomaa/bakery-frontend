@@ -79,14 +79,7 @@ import { AR } from '../../core/i18n/ar';
       <div class="product-form">
         <gmn-input [label]="ar.products.name" [(ngModel)]="form.name" />
         <div class="product-form__row">
-          <div class="product-form__field">
-            <label>{{ ar.products.category }}</label>
-            <select [(ngModel)]="form.category" class="product-form__select">
-              @for (cat of categories(); track cat.name) {
-                <option [value]="cat.name">{{ cat.nameAr }}</option>
-              }
-            </select>
-          </div>
+          <gmn-input [label]="ar.products.price" type="number" [(ngModel)]="form.price" />
           <div class="product-form__field">
             <label>{{ ar.products.sellType }}</label>
             <select [(ngModel)]="form.sellType" class="product-form__select">
@@ -95,23 +88,48 @@ import { AR } from '../../core/i18n/ar';
             </select>
           </div>
         </div>
-        <div class="product-form__row">
-          <gmn-input [label]="ar.products.price" type="number" [(ngModel)]="form.price" />
-          <gmn-input [label]="ar.products.barcode" [(ngModel)]="form.barcode" />
+        <div class="product-form__field">
+          <label>{{ ar.products.category }}</label>
+          <select [(ngModel)]="form.category" class="product-form__select">
+            @for (cat of categories(); track cat.name) {
+              <option [value]="cat.name">{{ cat.nameAr }}</option>
+            }
+          </select>
         </div>
         @if (!editingId()) {
           <div class="product-form__field">
-            <label>{{ ar.products.image }}</label>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              class="product-form__file"
-              (change)="onFileSelected($event)"
-            />
-            @if (previewUrl()) {
-              <img class="product-form__preview" [src]="previewUrl()!" [alt]="ar.products.image" />
-            }
-            <small>{{ ar.products.imageHint }}</small>
+            <span class="product-form__label">{{ ar.products.image }}</span>
+            <div
+              class="image-drop"
+              [class.image-drop--filled]="!!previewUrl()"
+              role="button"
+              tabindex="0"
+              (click)="createFileInput.click()"
+              (keydown.enter)="createFileInput.click()"
+              (dragover)="onDragOver($event)"
+              (dragleave)="onDragLeave($event)"
+              (drop)="onDrop($event, 'create')"
+            >
+              <input
+                #createFileInput
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                (change)="onFileSelected($event)"
+                (click)="$event.stopPropagation()"
+              />
+              @if (previewUrl()) {
+                <img class="image-drop__preview" [src]="previewUrl()!" [alt]="ar.products.image" />
+                <div class="image-drop__overlay">
+                  <span>{{ ar.products.imageChange }}</span>
+                </div>
+              } @else {
+                <div class="image-drop__empty">
+                  <span class="image-drop__icon">📷</span>
+                  <strong>{{ ar.products.imagePick }}</strong>
+                  <small>{{ ar.products.imageHint }}</small>
+                </div>
+              }
+            </div>
           </div>
         }
         @if (formError()) {
@@ -132,15 +150,37 @@ import { AR } from '../../core/i18n/ar';
       (closed)="closeImageModal()"
     >
       <div class="product-form">
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          class="product-form__file"
-          (change)="onReplaceFileSelected($event)"
-        />
-        @if (replacePreviewUrl()) {
-          <img class="product-form__preview" [src]="replacePreviewUrl()!" [alt]="ar.products.image" />
-        }
+        <div
+          class="image-drop"
+          [class.image-drop--filled]="!!replacePreviewUrl()"
+          role="button"
+          tabindex="0"
+          (click)="replaceFileInput.click()"
+          (keydown.enter)="replaceFileInput.click()"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
+          (drop)="onDrop($event, 'replace')"
+        >
+          <input
+            #replaceFileInput
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            (change)="onReplaceFileSelected($event)"
+            (click)="$event.stopPropagation()"
+          />
+          @if (replacePreviewUrl()) {
+            <img class="image-drop__preview" [src]="replacePreviewUrl()!" [alt]="ar.products.image" />
+            <div class="image-drop__overlay">
+              <span>{{ ar.products.imageChange }}</span>
+            </div>
+          } @else {
+            <div class="image-drop__empty">
+              <span class="image-drop__icon">📷</span>
+              <strong>{{ ar.products.imagePick }}</strong>
+              <small>{{ ar.products.imageHint }}</small>
+            </div>
+          }
+        </div>
         @if (formError()) {
           <p class="product-form__error">{{ formError() }}</p>
         }
@@ -233,15 +273,15 @@ import { AR } from '../../core/i18n/ar';
       grid-template-columns: 1fr 1fr;
       gap: 1rem;
     }
-    .product-form__field label {
+    .product-form__field label,
+    .product-form__label {
       display: block;
       font-size: 0.75rem;
       font-weight: 600;
       color: var(--text-muted);
       margin-bottom: 0.375rem;
     }
-    .product-form__select,
-    .product-form__file {
+    .product-form__select {
       width: 100%;
       height: 2.75rem;
       padding: 0 1rem;
@@ -254,23 +294,78 @@ import { AR } from '../../core/i18n/ar';
       direction: rtl;
       text-align: right;
     }
-    .product-form__file {
-      padding-top: 0.55rem;
+    .image-drop {
+      position: relative;
+      display: block;
+      width: 100%;
+      min-height: 10rem;
+      border-radius: var(--radius-2xl);
+      border: 1.5px dashed var(--border-default);
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--accent) 6%, transparent), transparent),
+        var(--bg-surface-container);
+      cursor: pointer;
+      overflow: hidden;
+      transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    }
+    .image-drop:hover,
+    .image-drop:focus-within,
+    .image-drop--dragging {
+      border-color: var(--text-accent);
+      box-shadow: var(--shadow-focus);
+    }
+    .image-drop input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
       cursor: pointer;
     }
-    .product-form__preview {
-      margin-top: 0.75rem;
-      width: 100%;
-      max-height: 12rem;
-      object-fit: cover;
-      border-radius: var(--radius-xl);
-      border: 1px solid var(--border-subtle);
+    .image-drop__empty {
+      min-height: 10rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 1.25rem;
+      text-align: center;
+      pointer-events: none;
     }
-    .product-form__field small {
-      display: block;
-      margin-top: 0.35rem;
+    .image-drop__icon {
+      font-size: 1.75rem;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+    .image-drop__empty strong {
+      color: var(--text-primary);
+      font-size: 0.9375rem;
+      font-weight: 700;
+    }
+    .image-drop__empty small {
       color: var(--text-muted);
       font-size: 0.75rem;
+      line-height: 1.45;
+      max-width: 16rem;
+    }
+    .image-drop__preview {
+      display: block;
+      width: 100%;
+      height: 12rem;
+      object-fit: cover;
+    }
+    .image-drop__overlay {
+      position: absolute;
+      inset: auto 0 0 0;
+      padding: 0.65rem;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.55));
+      color: #fff;
+      text-align: center;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      pointer-events: none;
+    }
+    .image-drop--filled {
+      border-style: solid;
     }
     .product-form__error {
       margin: 0;
@@ -317,7 +412,6 @@ export class ProductsComponent implements OnInit {
     category: '',
     sellType: SellType.PIECE,
     price: 0,
-    barcode: '',
   };
 
   ngOnInit(): void {
@@ -349,7 +443,6 @@ export class ProductsComponent implements OnInit {
       category: this.categories()[0]?.name ?? '',
       sellType: SellType.PIECE,
       price: 0,
-      barcode: '',
     };
     this.selectedFile = null;
     this.revokePreview(this.previewUrl());
@@ -365,7 +458,6 @@ export class ProductsComponent implements OnInit {
       category: product.category,
       sellType: product.sellType,
       price: product.price,
-      barcode: product.barcode ?? '',
     };
     this.selectedFile = null;
     this.revokePreview(this.previewUrl());
@@ -395,10 +487,47 @@ export class ProductsComponent implements OnInit {
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
+    this.applyCreateFile(input.files?.[0] ?? null);
+  }
+
+  onReplaceFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.applyReplaceFile(input.files?.[0] ?? null);
+  }
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    (event.currentTarget as HTMLElement | null)?.classList.add('image-drop--dragging');
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    (event.currentTarget as HTMLElement | null)?.classList.remove('image-drop--dragging');
+  }
+
+  onDrop(event: DragEvent, mode: 'create' | 'replace'): void {
+    event.preventDefault();
+    event.stopPropagation();
+    (event.currentTarget as HTMLElement | null)?.classList.remove('image-drop--dragging');
+    const file = event.dataTransfer?.files?.[0] ?? null;
+    if (!file || !file.type.startsWith('image/')) return;
+    if (mode === 'create') this.applyCreateFile(file);
+    else this.applyReplaceFile(file);
+  }
+
+  private applyCreateFile(file: File | null): void {
     this.selectedFile = file;
     this.revokePreview(this.previewUrl());
     this.previewUrl.set(file ? URL.createObjectURL(file) : null);
+    this.formError.set('');
+  }
+
+  private applyReplaceFile(file: File | null): void {
+    this.replaceFile = file;
+    this.revokePreview(this.replacePreviewUrl());
+    this.replacePreviewUrl.set(file ? URL.createObjectURL(file) : null);
     this.formError.set('');
   }
 
@@ -419,15 +548,6 @@ export class ProductsComponent implements OnInit {
     this.replaceFile = null;
   }
 
-  onReplaceFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
-    this.replaceFile = file;
-    this.revokePreview(this.replacePreviewUrl());
-    this.replacePreviewUrl.set(file ? URL.createObjectURL(file) : null);
-    this.formError.set('');
-  }
-
   save(): void {
     if (!this.form.name.trim()) {
       this.formError.set(this.ar.products.nameRequired);
@@ -443,7 +563,6 @@ export class ProductsComponent implements OnInit {
           category: this.form.category,
           sellType: this.form.sellType,
           price: this.form.price,
-          barcode: this.form.barcode.trim() || undefined,
         })
         .subscribe({
           next: () => {
@@ -472,9 +591,6 @@ export class ProductsComponent implements OnInit {
     body.append('category', this.form.category);
     body.append('sellType', this.form.sellType);
     body.append('price', String(this.form.price));
-    if (this.form.barcode.trim()) {
-      body.append('barcode', this.form.barcode.trim());
-    }
     body.append('image', this.selectedFile, this.selectedFile.name);
 
     this.saving.set(true);
