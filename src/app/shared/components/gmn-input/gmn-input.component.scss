@@ -123,6 +123,30 @@
     &:disabled {
       cursor: not-allowed;
     }
+
+    /* Hide native number spinners for a cleaner left-aligned value */
+    &[type='number'] {
+      -moz-appearance: textfield;
+
+      &::-webkit-outer-spin-button,
+      &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+    }
+  }
+
+  &--number {
+    .gmn-input-wrap__input {
+      direction: ltr !important;
+      text-align: left !important;
+      unicode-bidi: isolate;
+
+      &::placeholder {
+        text-align: left !important;
+        direction: ltr !important;
+      }
+    }
   }
 }
 

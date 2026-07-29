@@ -27,9 +27,10 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/f
       class="gmn-input-wrap"
       [ngClass]="{
         'gmn-input-wrap--focused': focused(),
-        'gmn-input-wrap--filled': !!value,
+        'gmn-input-wrap--filled': hasValue(),
         'gmn-input-wrap--error': error,
-        'gmn-input-wrap--disabled': disabled
+        'gmn-input-wrap--disabled': disabled,
+        'gmn-input-wrap--number': isNumberType()
       }"
     >
       <div class="gmn-input-wrap__prefix">
@@ -44,7 +45,8 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/f
           class="gmn-input-wrap__input"
           [id]="inputId"
           [type]="type"
-          dir="rtl"
+          [attr.dir]="isNumberType() ? 'ltr' : 'rtl'"
+          [attr.inputmode]="isNumberType() ? 'decimal' : null"
           [placeholder]="focused() || !label ? placeholder : ''"
           [disabled]="disabled"
           [value]="value"
@@ -84,8 +86,20 @@ export class GmnInputComponent implements ControlValueAccessor {
   private onChange: (val: string) => void = () => {};
   private onTouched: () => void = () => {};
 
-  writeValue(val: string): void {
-    this.value = val ?? '';
+  isNumberType(): boolean {
+    return this.type === 'number' || this.type === 'tel';
+  }
+
+  hasValue(): boolean {
+    return this.value !== '' && this.value !== null && this.value !== undefined;
+  }
+
+  writeValue(val: string | number | null | undefined): void {
+    if (val === null || val === undefined) {
+      this.value = '';
+      return;
+    }
+    this.value = String(val);
   }
 
   registerOnChange(fn: (val: string) => void): void {
