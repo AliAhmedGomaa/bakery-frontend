@@ -60,6 +60,8 @@ export class PosComponent implements OnInit {
   processing = signal(false);
   printAfterSale = signal(false);
 
+  readonly weightPresets = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+
   filteredProducts = computed(() => {
     let list = this.products();
     const cat = this.activeCategory();
@@ -129,10 +131,11 @@ export class PosComponent implements OnInit {
 
   confirmWeight(): void {
     const product = this.weightProduct();
-    const grams = parseFloat(this.weightInput);
-    if (!product || isNaN(grams) || grams <= 0) return;
+    const kg = parseFloat(this.weightInput);
+    if (!product || isNaN(kg) || kg <= 0) return;
 
-    const subtotal = (grams / 1000) * product.price;
+    const grams = Math.round(kg * 1000 * 1000) / 1000;
+    const subtotal = kg * product.price;
     this.cart.update((items) => [
       ...items,
       {
@@ -146,6 +149,15 @@ export class PosComponent implements OnInit {
 
     this.showWeightModal.set(false);
     this.weightProduct.set(null);
+  }
+
+  selectWeightPreset(kg: number): void {
+    this.weightInput = String(kg);
+  }
+
+  formatWeightKg(grams: number): string {
+    const kg = grams / 1000;
+    return Number.isInteger(kg) ? String(kg) : kg.toFixed(3).replace(/\.?0+$/, '');
   }
 
   updateQuantity(index: number, delta: number): void {
@@ -247,7 +259,7 @@ export class PosComponent implements OnInit {
       .map((item) => {
         const qty =
           item.weightInGrams !== null
-            ? `${item.weightInGrams} جرام`
+            ? `${this.formatWeightKg(item.weightInGrams)} ${AR.pos.kg}`
             : String(item.quantity);
         return `
           <tr>

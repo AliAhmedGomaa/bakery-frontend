@@ -72,7 +72,7 @@
           <div class="pos__cart-item-info">
             <span class="pos__cart-item-name">{{ item.product.name }}</span>
             @if (item.weightInGrams !== null) {
-              <span class="pos__cart-item-weight">{{ item.weightInGrams }} جرام</span>
+              <span class="pos__cart-item-weight">{{ formatWeightKg(item.weightInGrams) }} {{ ar.pos.kg }}</span>
             }
           </div>
 
@@ -135,15 +135,30 @@
   (closed)="showWeightModal.set(false)"
 >
   <div class="weight-modal">
+    <div class="weight-modal__quick">
+      <span class="weight-modal__quick-label">{{ ar.pos.weightQuick }}</span>
+      <div class="weight-modal__chips">
+        @for (kg of weightPresets; track kg) {
+          <button
+            type="button"
+            class="weight-modal__chip"
+            [class.weight-modal__chip--active]="weightInput === String(kg)"
+            (click)="selectWeightPreset(kg)"
+          >
+            {{ kg }}
+          </button>
+        }
+      </div>
+    </div>
     <gmn-input
-      [label]="ar.pos.weightGrams"
+      [label]="ar.pos.weightKg"
       type="number"
       [placeholder]="ar.pos.weightPlaceholder"
       [(ngModel)]="weightInput"
     />
     <p class="weight-modal__preview">
       @if (weightInput && +weightInput > 0) {
-        {{ ar.pos.price }}: {{ ar.dashboard.currency }} {{ ((+weightInput / 1000) * (weightProduct()?.price ?? 0)) | number:'1.2-2' }}
+        {{ ar.pos.price }}: {{ ar.dashboard.currency }} {{ ((+weightInput) * (weightProduct()?.price ?? 0)) | number:'1.2-2' }}
       }
     </p>
   </div>
