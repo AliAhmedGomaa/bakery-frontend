@@ -142,7 +142,7 @@
           <button
             type="button"
             class="weight-modal__chip"
-            [class.weight-modal__chip--active]="weightInput === String(kg)"
+            [class.weight-modal__chip--active]="isWeightPresetActive(kg)"
             (click)="selectWeightPreset(kg)"
           >
             {{ kg }}

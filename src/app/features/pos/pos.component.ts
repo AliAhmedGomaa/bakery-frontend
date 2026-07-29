@@ -155,6 +155,10 @@ export class PosComponent implements OnInit {
     this.weightInput = String(kg);
   }
 
+  isWeightPresetActive(kg: number): boolean {
+    return parseFloat(this.weightInput) === kg;
+  }
+
   formatWeightKg(grams: number): string {
     const kg = grams / 1000;
     return Number.isInteger(kg) ? String(kg) : kg.toFixed(3).replace(/\.?0+$/, '');
