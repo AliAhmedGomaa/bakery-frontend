@@ -45,11 +45,13 @@
             }
           </span>
           <span class="pos__product-name">{{ product.name }}</span>
-          @if (product.sellType === 'WEIGHT') {
-            <span class="pos__product-meta">
+          <span class="pos__product-meta">
+            @if (product.sellType === 'WEIGHT') {
               <gmn-badge variant="info" size="sm">{{ ar.pos.byWeight }}</gmn-badge>
-            </span>
-          }
+            } @else {
+              <gmn-badge variant="neutral" size="sm">{{ ar.pos.byPiece }}</gmn-badge>
+            }
+          </span>
           <span class="pos__product-price">{{ ar.dashboard.currency }} {{ product.price }}</span>
         </button>
       } @empty {

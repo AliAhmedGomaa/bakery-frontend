@@ -70,6 +70,7 @@ export const AR = {
     search: 'ابحث عن منتج أو امسح الباركود...',
     all: 'الكل',
     byWeight: 'بالوزن',
+    byPiece: 'بالقطعة',
     noProducts: 'لا توجد منتجات',
     currentOrder: 'الطلب الحالي',
     clear: 'مسح',
