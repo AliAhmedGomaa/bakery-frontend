@@ -40,6 +40,12 @@ export const routes: Routes = [
         canActivate: [permissionGuard(Permission.CATEGORIES)],
       },
       {
+        path: 'sell-types',
+        loadComponent: () =>
+          import('./features/sell-types/sell-types.component').then((m) => m.SellTypesComponent),
+        canActivate: [permissionGuard(Permission.SELL_TYPES)],
+      },
+      {
         path: 'production',
         loadComponent: () =>
           import('./features/production/production.component').then((m) => m.ProductionComponent),

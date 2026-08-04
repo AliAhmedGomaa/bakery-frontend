@@ -3,6 +3,16 @@
   width: 100%;
 }
 
+.gmn-input-external-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 0.375rem;
+  text-align: right;
+  direction: rtl;
+}
+
 .gmn-input-wrap {
   position: relative;
   display: flex;
@@ -124,7 +134,6 @@
       cursor: not-allowed;
     }
 
-    /* Hide native number spinners for a cleaner left-aligned value */
     &[type='number'] {
       -moz-appearance: textfield;
 
@@ -136,16 +145,44 @@
     }
   }
 
+  /* Number/tel: external label above + same height as form selects */
   &--number {
+    min-height: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--radius-md);
+    border-color: var(--border-default);
+
+    .gmn-input-wrap__field {
+      min-height: 0;
+      height: 100%;
+      padding: 0;
+      justify-content: center;
+    }
+
     .gmn-input-wrap__input {
       direction: ltr !important;
-      text-align: left !important;
+      text-align: right !important;
       unicode-bidi: isolate;
+      white-space: nowrap;
+      appearance: textfield;
+      -moz-appearance: textfield;
+      font-size: 0.875rem;
+      height: 100%;
+      line-height: 1.25;
+      color: var(--text-primary);
 
       &::placeholder {
-        text-align: left !important;
+        text-align: right !important;
         direction: ltr !important;
       }
+    }
+
+    &.gmn-input-wrap--focused {
+      border-color: var(--border-focus) !important;
+    }
+
+    &.gmn-input-wrap--error {
+      border-color: var(--status-danger-text) !important;
     }
   }
 }

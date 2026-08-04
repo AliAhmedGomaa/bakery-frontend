@@ -149,7 +149,7 @@ import { AR } from '../../core/i18n/ar';
     .row-actions {
       display: flex;
       gap: 0.35rem;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
     }
     .material-form {
       display: flex;
@@ -172,10 +172,12 @@ import { AR } from '../../core/i18n/ar';
     .material-form__select {
       width: 100%;
       height: 2.75rem;
-      padding: 0 1rem;
+      padding-block: 0;
+      padding-inline-start: 1rem;
+      padding-inline-end: 2.35rem;
       border-radius: var(--radius-md);
       border: 1.5px solid var(--border-default);
-      background: var(--bg-surface-container-high);
+      background-color: var(--bg-surface-container-high);
       color: var(--text-primary);
       font-family: inherit;
       font-size: 0.875rem;
@@ -199,9 +201,9 @@ export class InventoryComponent implements OnInit {
   form = {
     name: '',
     unit: MaterialUnit.KG,
-    currentStock: 0,
-    minStockAlert: 0,
-    costPerUnit: 0,
+    currentStock: '' as string | number,
+    minStockAlert: '' as string | number,
+    costPerUnit: '' as string | number,
   };
 
   columns: GmnTableColumn[] = [
@@ -219,10 +221,15 @@ export class InventoryComponent implements OnInit {
   );
 
   tableData = computed(() =>
-    this.materials().map((m) => ({
-      ...m,
-      isLow: m.currentStock <= m.minStockAlert,
-    })),
+    this.materials().map((m) => {
+      const isLow = m.currentStock <= m.minStockAlert;
+      return {
+        ...m,
+        isLow,
+        status: isLow ? AR.inventory.low : AR.inventory.ok,
+        unitLabel: this.unitLabel(m.unit),
+      };
+    }),
   );
 
   ngOnInit(): void {
@@ -245,9 +252,9 @@ export class InventoryComponent implements OnInit {
     this.form = {
       name: '',
       unit: MaterialUnit.KG,
-      currentStock: 0,
-      minStockAlert: 0,
-      costPerUnit: 0,
+      currentStock: '',
+      minStockAlert: '',
+      costPerUnit: '',
     };
     this.showModal.set(true);
   }
@@ -279,11 +286,34 @@ export class InventoryComponent implements OnInit {
 
   save(): void {
     if (!this.form.name.trim()) return;
+
+    const currentStock = this.form.currentStock === '' ? NaN : Number(this.form.currentStock);
+    const minStockAlert = this.form.minStockAlert === '' ? NaN : Number(this.form.minStockAlert);
+    const costPerUnit = this.form.costPerUnit === '' ? NaN : Number(this.form.costPerUnit);
+    if (
+      isNaN(currentStock) ||
+      currentStock < 0 ||
+      isNaN(minStockAlert) ||
+      minStockAlert < 0 ||
+      isNaN(costPerUnit) ||
+      costPerUnit < 0
+    ) {
+      return;
+    }
+
+    const body = {
+      name: this.form.name.trim(),
+      unit: this.form.unit,
+      currentStock,
+      minStockAlert,
+      costPerUnit,
+    };
+
     this.saving.set(true);
     const editId = this.editingId();
     const req = editId
-      ? this.api.patch(`/raw-materials/${editId}`, this.form)
-      : this.api.post('/raw-materials', this.form);
+      ? this.api.patch(`/raw-materials/${editId}`, body)
+      : this.api.post('/raw-materials', body);
 
     req.subscribe({
       next: () => {

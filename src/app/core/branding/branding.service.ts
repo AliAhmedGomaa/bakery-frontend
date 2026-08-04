@@ -85,7 +85,10 @@ export class BrandingService {
 
     // Tab icon always follows the brand logo (faviconUrl is kept as a fallback)
     const icon = data.logoUrl || data.faviconUrl;
-    if (icon) this.setFavicon(icon);
+    if (icon) {
+      this.setFavicon(icon);
+      this.patchManifestIcons(icon, data);
+    }
   }
 
   private normalize(data: PlatformBranding): PlatformBranding {
@@ -131,6 +134,42 @@ export class BrandingService {
     // Force browsers to refresh cached favicon
     link.href = href;
   }
+
+  private patchManifestIcons(iconUrl: string, data: PlatformBranding): void {
+    const sizes = ['72x72', '96x96', '128x128', '144x144', '152x152', '192x192', '384x384', '512x512'];
+    const type = this.mimeFromUrl(iconUrl);
+    const icons = sizes.map((s) => ({ src: iconUrl, sizes: s, type, purpose: 'maskable any' }));
+
+    const appName = data.appName?.trim() || DEFAULT_BRANDING.appName;
+    const manifest = {
+      name: `${appName} — نظام إدارة المخابز`,
+      short_name: appName,
+      lang: 'ar',
+      dir: 'rtl',
+      theme_color: data.brandColor || '#78350f',
+      background_color: '#fefce8',
+      display: 'standalone',
+      scope: './',
+      start_url: './',
+      description: 'نظام إدارة المخابز — نقطة بيع، إنتاج، مخزون',
+      icons,
+    };
+
+    const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+    const url = URL.createObjectURL(blob);
+
+    let link = document.querySelector<HTMLLinkElement>("link[rel='manifest']");
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'manifest';
+      document.head.appendChild(link);
+    }
+    if (this.prevManifestBlob) URL.revokeObjectURL(this.prevManifestBlob);
+    this.prevManifestBlob = url;
+    link.href = url;
+  }
+
+  private prevManifestBlob: string | null = null;
 
   private mimeFromUrl(url: string): string {
     const path = url.split('?')[0].toLowerCase();

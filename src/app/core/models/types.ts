@@ -7,6 +7,7 @@ export enum Permission {
   USERS = 'users',
   BRANDING = 'branding',
   CATEGORIES = 'categories',
+  SELL_TYPES = 'sell_types',
   ROLES = 'roles',
 }
 
@@ -26,6 +27,17 @@ export interface Category {
   _id: string;
   name: string;
   nameAr: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export type PricingMode = 'UNIT' | 'WEIGHT';
+
+export interface SellType {
+  _id: string;
+  name: string;
+  nameAr: string;
+  pricingMode: PricingMode;
   sortOrder: number;
   isActive: boolean;
 }
@@ -53,20 +65,27 @@ export interface ApiResponse<T> {
   timestamp: string;
 }
 
-export enum SellType {
-  PIECE = 'PIECE',
-  WEIGHT = 'WEIGHT',
-}
-
 export interface Product {
   _id: string;
   name: string;
   category: string;
-  sellType: SellType;
+  /** Matches SellType.name */
+  sellType: string;
   price: number;
   barcode?: string;
   /** Relative path e.g. /uploads/products/xxx.jpg */
   image?: string;
+}
+
+/** True when POS should open the weight entry modal for this product. */
+export function isWeightPricing(
+  sellTypeCode: string | undefined,
+  sellTypes: SellType[],
+): boolean {
+  if (!sellTypeCode) return false;
+  const match = sellTypes.find((s) => s.name === sellTypeCode);
+  if (match) return match.pricingMode === 'WEIGHT';
+  return sellTypeCode === 'WEIGHT';
 }
 
 export enum MaterialUnit {

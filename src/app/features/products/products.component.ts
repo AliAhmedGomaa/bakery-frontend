@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -10,7 +10,7 @@ import {
   ConfirmDialogService,
 } from '../../shared/components';
 import { ApiService } from '../../core/services/api.service';
-import { Category, Product, SellType } from '../../core/models/types';
+import { Category, Product, SellType, isWeightPricing } from '../../core/models/types';
 import { productImageUrl } from '../../core/utils/product-image';
 import { AR } from '../../core/i18n/ar';
 
@@ -36,8 +36,17 @@ import { AR } from '../../core/i18n/ar';
         <gmn-button variant="primary" (clicked)="openNew()">+ {{ ar.products.add }}</gmn-button>
       </div>
 
+      <div class="products__search">
+        <gmn-input
+          [placeholder]="ar.common.search"
+          (valueChange)="searchQuery.set($event)"
+        >
+          <span prefix>🔍</span>
+        </gmn-input>
+      </div>
+
       <div class="products__grid">
-        @for (product of products(); track product._id) {
+        @for (product of filteredProducts(); track product._id) {
           <gmn-card class="product-card">
             <div class="product-card__media">
               @if (imageUrl(product.image); as src) {
@@ -50,8 +59,10 @@ import { AR } from '../../core/i18n/ar';
               <strong>{{ product.name }}</strong>
               <div class="product-card__meta">
                 <gmn-badge variant="neutral" size="sm">{{ categoryLabel(product.category) }}</gmn-badge>
-                @if (product.sellType === 'WEIGHT') {
-                  <gmn-badge variant="info" size="sm">{{ ar.pos.byWeight }}</gmn-badge>
+                @if (isWeightProduct(product)) {
+                  <gmn-badge variant="info" size="sm">{{ sellTypeLabel(product.sellType) }}</gmn-badge>
+                } @else {
+                  <gmn-badge variant="neutral" size="sm">{{ sellTypeLabel(product.sellType) }}</gmn-badge>
                 }
               </div>
               <span class="product-card__price">
@@ -59,13 +70,14 @@ import { AR } from '../../core/i18n/ar';
               </span>
               <div class="product-card__actions">
                 <gmn-button variant="ghost" size="sm" (clicked)="openEdit(product)">{{ ar.products.edit }}</gmn-button>
-                <gmn-button variant="ghost" size="sm" (clicked)="openImageReplace(product)">{{ ar.products.changeImage }}</gmn-button>
                 <gmn-button variant="danger" size="sm" (clicked)="confirmDelete(product)">{{ ar.products.delete }}</gmn-button>
               </div>
             </div>
           </gmn-card>
         } @empty {
-          <p class="products__empty">{{ ar.products.empty }}</p>
+          <p class="products__empty">
+            {{ searchQuery().trim() ? ar.common.noSearchResults : ar.products.empty }}
+          </p>
         }
       </div>
     </div>
@@ -83,8 +95,9 @@ import { AR } from '../../core/i18n/ar';
           <div class="product-form__field">
             <label>{{ ar.products.sellType }}</label>
             <select [(ngModel)]="form.sellType" class="product-form__select">
-              <option [value]="SellType.PIECE">{{ ar.products.piece }}</option>
-              <option [value]="SellType.WEIGHT">{{ ar.products.weight }}</option>
+              @for (st of sellTypes(); track st.name) {
+                <option [value]="st.name">{{ st.nameAr }}</option>
+              }
             </select>
           </div>
         </div>
@@ -96,42 +109,40 @@ import { AR } from '../../core/i18n/ar';
             }
           </select>
         </div>
-        @if (!editingId()) {
-          <div class="product-form__field">
-            <span class="product-form__label">{{ ar.products.image }}</span>
-            <div
-              class="image-drop"
-              [class.image-drop--filled]="!!previewUrl()"
-              role="button"
-              tabindex="0"
-              (click)="createFileInput.click()"
-              (keydown.enter)="createFileInput.click()"
-              (dragover)="onDragOver($event)"
-              (dragleave)="onDragLeave($event)"
-              (drop)="onDrop($event, 'create')"
-            >
-              <input
-                #createFileInput
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                (change)="onFileSelected($event)"
-                (click)="$event.stopPropagation()"
-              />
-              @if (previewUrl()) {
-                <img class="image-drop__preview" [src]="previewUrl()!" [alt]="ar.products.image" />
-                <div class="image-drop__overlay">
-                  <span>{{ ar.products.imageChange }}</span>
-                </div>
-              } @else {
-                <div class="image-drop__empty">
-                  <span class="image-drop__icon">📷</span>
-                  <strong>{{ ar.products.imagePick }}</strong>
-                  <small>{{ ar.products.imageHint }}</small>
-                </div>
-              }
-            </div>
+        <div class="product-form__field">
+          <span class="product-form__label">{{ ar.products.image }}</span>
+          <div
+            class="image-drop"
+            [class.image-drop--filled]="!!previewUrl()"
+            role="button"
+            tabindex="0"
+            (click)="fileInput.click()"
+            (keydown.enter)="fileInput.click()"
+            (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave($event)"
+            (drop)="onDrop($event)"
+          >
+            <input
+              #fileInput
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              (change)="onFileSelected($event)"
+              (click)="$event.stopPropagation()"
+            />
+            @if (previewUrl()) {
+              <img class="image-drop__preview" [src]="previewUrl()!" [alt]="ar.products.image" />
+              <div class="image-drop__overlay">
+                <span>{{ ar.products.imageChange }}</span>
+              </div>
+            } @else {
+              <div class="image-drop__empty">
+                <span class="image-drop__icon">📷</span>
+                <strong>{{ ar.products.imagePick }}</strong>
+                <small>{{ ar.products.imageHint }}</small>
+              </div>
+            }
           </div>
-        }
+        </div>
         @if (formError()) {
           <p class="product-form__error">{{ formError() }}</p>
         }
@@ -141,55 +152,6 @@ import { AR } from '../../core/i18n/ar';
         <gmn-button variant="primary" [loading]="saving()" (clicked)="save()">{{ ar.products.save }}</gmn-button>
       </div>
     </gmn-modal>
-
-    <gmn-modal
-      [open]="showImageModal()"
-      [title]="ar.products.changeImage"
-      [subtitle]="imageTarget()?.name ?? ''"
-      size="sm"
-      (closed)="closeImageModal()"
-    >
-      <div class="product-form">
-        <div
-          class="image-drop"
-          [class.image-drop--filled]="!!replacePreviewUrl()"
-          role="button"
-          tabindex="0"
-          (click)="replaceFileInput.click()"
-          (keydown.enter)="replaceFileInput.click()"
-          (dragover)="onDragOver($event)"
-          (dragleave)="onDragLeave($event)"
-          (drop)="onDrop($event, 'replace')"
-        >
-          <input
-            #replaceFileInput
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            (change)="onReplaceFileSelected($event)"
-            (click)="$event.stopPropagation()"
-          />
-          @if (replacePreviewUrl()) {
-            <img class="image-drop__preview" [src]="replacePreviewUrl()!" [alt]="ar.products.image" />
-            <div class="image-drop__overlay">
-              <span>{{ ar.products.imageChange }}</span>
-            </div>
-          } @else {
-            <div class="image-drop__empty">
-              <span class="image-drop__icon">📷</span>
-              <strong>{{ ar.products.imagePick }}</strong>
-              <small>{{ ar.products.imageHint }}</small>
-            </div>
-          }
-        </div>
-        @if (formError()) {
-          <p class="product-form__error">{{ formError() }}</p>
-        }
-      </div>
-      <div footer>
-        <gmn-button variant="ghost" (clicked)="closeImageModal()">{{ ar.pos.cancel }}</gmn-button>
-        <gmn-button variant="primary" [loading]="saving()" (clicked)="saveImage()">{{ ar.products.saveImage }}</gmn-button>
-      </div>
-    </gmn-modal>
   `,
   styles: [`
     .products__header {
@@ -197,7 +159,11 @@ import { AR } from '../../core/i18n/ar';
       justify-content: space-between;
       align-items: flex-start;
       gap: 1rem;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .products__search {
+      margin-bottom: 1rem;
+      max-width: 24rem;
     }
     .products__header h1 {
       margin: 0;
@@ -284,10 +250,12 @@ import { AR } from '../../core/i18n/ar';
     .product-form__select {
       width: 100%;
       height: 2.75rem;
-      padding: 0 1rem;
+      padding-block: 0;
+      padding-inline-start: 1rem;
+      padding-inline-end: 2.35rem;
       border-radius: var(--radius-md);
       border: 1.5px solid var(--border-default);
-      background: var(--bg-surface-container-high);
+      background-color: var(--bg-surface-container-high);
       color: var(--text-primary);
       font-family: inherit;
       font-size: 0.875rem;
@@ -391,34 +359,51 @@ export class ProductsComponent implements OnInit {
   private api = inject(ApiService);
   private confirmDialog = inject(ConfirmDialogService);
   readonly ar = AR;
-  readonly SellType = SellType;
 
   products = signal<Product[]>([]);
   categories = signal<Category[]>([]);
+  sellTypes = signal<SellType[]>([]);
+  searchQuery = signal('');
   showModal = signal(false);
-  showImageModal = signal(false);
   saving = signal(false);
   formError = signal('');
   previewUrl = signal<string | null>(null);
-  replacePreviewUrl = signal<string | null>(null);
-  imageTarget = signal<Product | null>(null);
   editingId = signal<string | null>(null);
 
   private selectedFile: File | null = null;
-  private replaceFile: File | null = null;
 
   form = {
     name: '',
     category: '',
-    sellType: SellType.PIECE,
-    price: 0,
+    sellType: 'PIECE',
+    price: '' as string | number,
   };
+
+  filteredProducts = computed(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    const list = this.products();
+    if (!q) return list;
+    return list.filter((p) => {
+      const category = this.categoryLabel(p.category).toLowerCase();
+      return (
+        p.name.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q) ||
+        category.includes(q) ||
+        String(p.price).includes(q) ||
+        p.sellType.toLowerCase().includes(q)
+      );
+    });
+  });
 
   ngOnInit(): void {
     this.load();
     this.api.get<Category[]>('/categories').subscribe({
       next: (data) => this.categories.set(data.filter((c) => c.isActive)),
       error: () => this.categories.set([]),
+    });
+    this.api.get<SellType[]>('/sell-types').subscribe({
+      next: (data) => this.sellTypes.set(data.filter((s) => s.isActive)),
+      error: () => this.sellTypes.set([]),
     });
   }
 
@@ -436,17 +421,26 @@ export class ProductsComponent implements OnInit {
     return this.categories().find((c) => c.name === cat)?.nameAr ?? cat;
   }
 
+  sellTypeLabel(code: string): string {
+    return this.sellTypes().find((s) => s.name === code)?.nameAr
+      ?? (code === 'WEIGHT' ? AR.products.weight : AR.products.piece);
+  }
+
+  isWeightProduct(product: Product): boolean {
+    return isWeightPricing(product.sellType, this.sellTypes());
+  }
+
   openNew(): void {
     this.editingId.set(null);
     this.form = {
       name: '',
       category: this.categories()[0]?.name ?? '',
-      sellType: SellType.PIECE,
-      price: 0,
+      sellType: this.sellTypes().find((s) => s.name === 'PIECE')?.name
+        ?? this.sellTypes()[0]?.name
+        ?? 'PIECE',
+      price: '',
     };
-    this.selectedFile = null;
-    this.revokePreview(this.previewUrl());
-    this.previewUrl.set(null);
+    this.clearImageSelection();
     this.formError.set('');
     this.showModal.set(true);
   }
@@ -461,7 +455,7 @@ export class ProductsComponent implements OnInit {
     };
     this.selectedFile = null;
     this.revokePreview(this.previewUrl());
-    this.previewUrl.set(null);
+    this.previewUrl.set(this.imageUrl(product.image));
     this.formError.set('');
     this.showModal.set(true);
   }
@@ -480,19 +474,14 @@ export class ProductsComponent implements OnInit {
   closeModal(): void {
     this.showModal.set(false);
     this.editingId.set(null);
-    this.revokePreview(this.previewUrl());
-    this.previewUrl.set(null);
-    this.selectedFile = null;
+    this.clearImageSelection();
+    this.formError.set('');
   }
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.applyCreateFile(input.files?.[0] ?? null);
-  }
-
-  onReplaceFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.applyReplaceFile(input.files?.[0] ?? null);
+    this.applyImageFile(input.files?.[0] ?? null);
+    input.value = '';
   }
 
   onDragOver(event: DragEvent): void {
@@ -507,45 +496,13 @@ export class ProductsComponent implements OnInit {
     (event.currentTarget as HTMLElement | null)?.classList.remove('image-drop--dragging');
   }
 
-  onDrop(event: DragEvent, mode: 'create' | 'replace'): void {
+  onDrop(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
     (event.currentTarget as HTMLElement | null)?.classList.remove('image-drop--dragging');
     const file = event.dataTransfer?.files?.[0] ?? null;
     if (!file || !file.type.startsWith('image/')) return;
-    if (mode === 'create') this.applyCreateFile(file);
-    else this.applyReplaceFile(file);
-  }
-
-  private applyCreateFile(file: File | null): void {
-    this.selectedFile = file;
-    this.revokePreview(this.previewUrl());
-    this.previewUrl.set(file ? URL.createObjectURL(file) : null);
-    this.formError.set('');
-  }
-
-  private applyReplaceFile(file: File | null): void {
-    this.replaceFile = file;
-    this.revokePreview(this.replacePreviewUrl());
-    this.replacePreviewUrl.set(file ? URL.createObjectURL(file) : null);
-    this.formError.set('');
-  }
-
-  openImageReplace(product: Product): void {
-    this.imageTarget.set(product);
-    this.replaceFile = null;
-    this.revokePreview(this.replacePreviewUrl());
-    this.replacePreviewUrl.set(null);
-    this.formError.set('');
-    this.showImageModal.set(true);
-  }
-
-  closeImageModal(): void {
-    this.showImageModal.set(false);
-    this.imageTarget.set(null);
-    this.revokePreview(this.replacePreviewUrl());
-    this.replacePreviewUrl.set(null);
-    this.replaceFile = null;
+    this.applyImageFile(file);
   }
 
   save(): void {
@@ -556,28 +513,7 @@ export class ProductsComponent implements OnInit {
 
     const editId = this.editingId();
     if (editId) {
-      this.saving.set(true);
-      this.api
-        .patch<Product>(`/products/${editId}`, {
-          name: this.form.name.trim(),
-          category: this.form.category,
-          sellType: this.form.sellType,
-          price: this.form.price,
-        })
-        .subscribe({
-          next: () => {
-            this.saving.set(false);
-            this.closeModal();
-            this.load();
-          },
-          error: (err: { error?: { message?: string | string[] } }) => {
-            this.saving.set(false);
-            const msg = err.error?.message;
-            this.formError.set(
-              Array.isArray(msg) ? msg.join('، ') : msg || this.ar.products.saveError,
-            );
-          },
-        });
+      this.saveEdit(editId);
       return;
     }
 
@@ -586,55 +522,82 @@ export class ProductsComponent implements OnInit {
       return;
     }
 
-    const body = new FormData();
-    body.append('name', this.form.name.trim());
-    body.append('category', this.form.category);
-    body.append('sellType', this.form.sellType);
-    body.append('price', String(this.form.price));
-    body.append('image', this.selectedFile, this.selectedFile.name);
-
-    this.saving.set(true);
-    this.api.upload<Product>('/products', body).subscribe({
-      next: () => {
-        this.saving.set(false);
-        this.closeModal();
-        this.load();
-      },
-      error: (err: { error?: { message?: string | string[] } }) => {
-        this.saving.set(false);
-        const msg = err.error?.message;
-        this.formError.set(
-          Array.isArray(msg) ? msg.join('، ') : msg || this.ar.products.saveError,
-        );
-      },
-    });
-  }
-
-  saveImage(): void {
-    const product = this.imageTarget();
-    if (!product || !this.replaceFile) {
-      this.formError.set(this.ar.products.imageRequired);
+    const price = Number(this.form.price);
+    if (this.form.price === '' || isNaN(price) || price < 0) {
+      this.formError.set(this.ar.products.nameRequired);
       return;
     }
 
     const body = new FormData();
-    body.append('image', this.replaceFile, this.replaceFile.name);
+    body.append('name', this.form.name.trim());
+    body.append('category', this.form.category);
+    body.append('sellType', this.form.sellType);
+    body.append('price', String(price));
+    body.append('image', this.selectedFile, this.selectedFile.name);
 
     this.saving.set(true);
-    this.api.uploadPatch<Product>(`/products/${product._id}/image`, body).subscribe({
-      next: () => {
-        this.saving.set(false);
-        this.closeImageModal();
-        this.load();
-      },
-      error: (err: { error?: { message?: string | string[] } }) => {
-        this.saving.set(false);
-        const msg = err.error?.message;
-        this.formError.set(
-          Array.isArray(msg) ? msg.join('، ') : msg || this.ar.products.saveError,
-        );
-      },
+    this.api.upload<Product>('/products', body).subscribe({
+      next: () => this.finishSave(),
+      error: (err) => this.handleSaveError(err),
     });
+  }
+
+  private saveEdit(editId: string): void {
+    const price = Number(this.form.price);
+    if (this.form.price === '' || isNaN(price) || price < 0) {
+      this.formError.set(this.ar.products.nameRequired);
+      return;
+    }
+    this.saving.set(true);
+    this.api
+      .patch<Product>(`/products/${editId}`, {
+        name: this.form.name.trim(),
+        category: this.form.category,
+        sellType: this.form.sellType,
+        price,
+      })
+      .subscribe({
+        next: () => {
+          if (!this.selectedFile) {
+            this.finishSave();
+            return;
+          }
+          const body = new FormData();
+          body.append('image', this.selectedFile, this.selectedFile.name);
+          this.api.uploadPatch<Product>(`/products/${editId}/image`, body).subscribe({
+            next: () => this.finishSave(),
+            error: (err) => this.handleSaveError(err),
+          });
+        },
+        error: (err) => this.handleSaveError(err),
+      });
+  }
+
+  private finishSave(): void {
+    this.saving.set(false);
+    this.closeModal();
+    this.load();
+  }
+
+  private handleSaveError(err: { error?: { message?: string | string[] } }): void {
+    this.saving.set(false);
+    const msg = err.error?.message;
+    this.formError.set(
+      Array.isArray(msg) ? msg.join('، ') : msg || this.ar.products.saveError,
+    );
+  }
+
+  private applyImageFile(file: File | null): void {
+    this.selectedFile = file;
+    this.revokePreview(this.previewUrl());
+    this.previewUrl.set(file ? URL.createObjectURL(file) : null);
+    this.formError.set('');
+  }
+
+  private clearImageSelection(): void {
+    this.selectedFile = null;
+    this.revokePreview(this.previewUrl());
+    this.previewUrl.set(null);
   }
 
   private revokePreview(url: string | null): void {

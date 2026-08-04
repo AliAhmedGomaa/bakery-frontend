@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import {
@@ -32,9 +32,18 @@ import { AR } from '../../../core/i18n/ar';
         <gmn-button variant="primary" (clicked)="openNew()">+ {{ ar.production.logBatch }}</gmn-button>
       </div>
 
+      <div class="batches__search">
+        <gmn-input
+          [placeholder]="ar.common.search"
+          (valueChange)="searchQuery.set($event)"
+        >
+          <span prefix>🔍</span>
+        </gmn-input>
+      </div>
+
       <!-- Batch Cards -->
       <div class="batches__grid">
-        @for (batch of batches(); track batch._id) {
+        @for (batch of filteredBatches(); track batch._id) {
           <gmn-card>
             <div class="batch-card">
               <div class="batch-card__header">
@@ -72,7 +81,9 @@ import { AR } from '../../../core/i18n/ar';
           </gmn-card>
         } @empty {
           <gmn-card>
-            <div class="batches__empty">{{ ar.production.noBatches }}</div>
+            <div class="batches__empty">
+              {{ searchQuery().trim() ? ar.common.noSearchResults : ar.production.noBatches }}
+            </div>
           </gmn-card>
         }
       </div>
@@ -148,6 +159,10 @@ import { AR } from '../../../core/i18n/ar';
       justify-content: space-between;
       align-items: center;
       margin-bottom: 1rem;
+    }
+    .batches__search {
+      margin-bottom: 1rem;
+      max-width: 24rem;
     }
     .batches__actions h2 {
       margin: 0;
@@ -240,10 +255,12 @@ import { AR } from '../../../core/i18n/ar';
     .batch-form__select {
       width: 100%;
       height: 2.75rem;
-      padding: 0 1rem;
+      padding-block: 0;
+      padding-inline-start: 1rem;
+      padding-inline-end: 2.35rem;
       border-radius: var(--radius-md);
       border: 1.5px solid var(--border-default);
-      background: var(--bg-surface-container-high);
+      background-color: var(--bg-surface-container-high);
       color: var(--text-primary);
       font-family: inherit;
       font-size: 0.875rem;
@@ -263,6 +280,7 @@ export class BatchLoggerComponent implements OnInit {
 
   batches = signal<ProductionBatch[]>([]);
   products = signal<Product[]>([]);
+  searchQuery = signal('');
   showNewModal = signal(false);
   showCompleteModal = signal(false);
   saving = signal(false);
@@ -272,14 +290,31 @@ export class BatchLoggerComponent implements OnInit {
 
   newBatch = {
     productId: '',
-    targetQuantity: 0,
+    targetQuantity: '' as string | number,
     batchNumber: '',
   };
 
   completeData = {
-    producedQuantity: 0,
-    wasteQuantity: 0,
+    producedQuantity: '' as string | number,
+    wasteQuantity: '' as string | number,
   };
+
+  filteredBatches = computed(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    const list = this.batches();
+    if (!q) return list;
+    return list.filter((b) => {
+      const productName = (b.product?.name ?? String(b.productId)).toLowerCase();
+      const status = this.statusLabel(b.status).toLowerCase();
+      return (
+        b.batchNumber.toLowerCase().includes(q) ||
+        productName.includes(q) ||
+        status.includes(q) ||
+        String(b.targetQuantity).includes(q) ||
+        String(b.producedQuantity).includes(q)
+      );
+    });
+  });
 
   ngOnInit(): void {
     this.loadBatches();
@@ -309,19 +344,29 @@ export class BatchLoggerComponent implements OnInit {
   openNew(): void {
     this.newBatch = {
       productId: '',
-      targetQuantity: 0,
+      targetQuantity: '',
       batchNumber: `BATCH-${this.todayStr}-${String(this.batches().length + 1).padStart(3, '0')}`,
     };
     this.showNewModal.set(true);
   }
 
   saveBatch(): void {
-    if (!this.newBatch.productId || this.newBatch.targetQuantity <= 0) return;
+    const targetQuantity = Number(this.newBatch.targetQuantity);
+    if (
+      !this.newBatch.productId ||
+      this.newBatch.targetQuantity === '' ||
+      isNaN(targetQuantity) ||
+      targetQuantity <= 0
+    ) {
+      return;
+    }
 
     this.saving.set(true);
     this.api
       .post('/production-batches', {
-        ...this.newBatch,
+        productId: this.newBatch.productId,
+        targetQuantity,
+        batchNumber: this.newBatch.batchNumber,
         bakerId: this.auth.user()?.id,
         date: new Date().toISOString(),
       })
@@ -345,7 +390,7 @@ export class BatchLoggerComponent implements OnInit {
     this.completingBatch.set(batch);
     this.completeData = {
       producedQuantity: batch.targetQuantity,
-      wasteQuantity: 0,
+      wasteQuantity: '',
     };
     this.showCompleteModal.set(true);
   }
@@ -354,12 +399,25 @@ export class BatchLoggerComponent implements OnInit {
     const batch = this.completingBatch();
     if (!batch) return;
 
+    const producedQuantity = Number(this.completeData.producedQuantity);
+    const wasteQuantity =
+      this.completeData.wasteQuantity === '' ? 0 : Number(this.completeData.wasteQuantity);
+    if (
+      this.completeData.producedQuantity === '' ||
+      isNaN(producedQuantity) ||
+      producedQuantity < 0 ||
+      isNaN(wasteQuantity) ||
+      wasteQuantity < 0
+    ) {
+      return;
+    }
+
     this.saving.set(true);
     this.api
       .patch(`/production-batches/${batch._id}`, {
         status: BatchStatus.COMPLETED,
-        producedQuantity: this.completeData.producedQuantity,
-        wasteQuantity: this.completeData.wasteQuantity,
+        producedQuantity,
+        wasteQuantity,
       })
       .subscribe({
         next: () => {

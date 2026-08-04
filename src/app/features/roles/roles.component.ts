@@ -138,7 +138,7 @@ import { AR } from '../../core/i18n/ar';
     .row-actions {
       display: flex;
       gap: 0.35rem;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
     }
     .perm-count {
       font-variant-numeric: tabular-nums;

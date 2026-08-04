@@ -124,7 +124,7 @@ interface ManagedUser extends User {
     .row-actions {
       display: flex;
       gap: 0.35rem;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
     }
     .user-form {
       display: flex;
@@ -142,10 +142,12 @@ interface ManagedUser extends User {
     .user-form__select {
       width: 100%;
       height: 2.75rem;
-      padding: 0 1rem;
+      padding-block: 0;
+      padding-inline-start: 1rem;
+      padding-inline-end: 2.35rem;
       border-radius: var(--radius-md);
       border: 1.5px solid var(--border-default);
-      background: var(--bg-surface-container-high);
+      background-color: var(--bg-surface-container-high);
       color: var(--text-primary);
       font-family: inherit;
       font-size: 0.875rem;
@@ -195,7 +197,9 @@ export class UsersComponent implements OnInit {
       name: u.name,
       mobile: u.mobile,
       role: u.role,
+      roleLabel: this.roleLabel(u.role),
       isActive: u.isActive ?? true,
+      statusLabel: (u.isActive ?? true) ? AR.users.active : AR.users.inactive,
     })),
   );
 

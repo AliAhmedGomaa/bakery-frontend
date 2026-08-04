@@ -46,7 +46,7 @@ interface NavItem {
             class="sidebar__link"
             [routerLink]="item.route"
             routerLinkActive="sidebar__link--active"
-            (click)="nav.hide()"
+            (click)="nav.hideIfCompact()"
           >
             <span class="sidebar__link-icon">{{ item.icon }}</span>
             <span>{{ item.label }}</span>
@@ -93,7 +93,7 @@ export class SidebarComponent {
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),
         takeUntilDestroyed(),
       )
-      .subscribe(() => this.nav.hide());
+      .subscribe(() => this.nav.hideIfCompact());
   }
 
   appName = computed(
@@ -105,6 +105,7 @@ export class SidebarComponent {
     { label: AR.nav.pos, icon: '🛒', route: '/pos', permission: Permission.POS },
     { label: AR.nav.products, icon: '🥐', route: '/products', permission: Permission.PRODUCTS },
     { label: AR.nav.categories, icon: '🏷️', route: '/categories', permission: Permission.CATEGORIES },
+    { label: AR.nav.sellTypes, icon: '⚖️', route: '/sell-types', permission: Permission.SELL_TYPES },
     { label: AR.nav.production, icon: '🏭', route: '/production', permission: Permission.PRODUCTION },
     { label: AR.nav.inventory, icon: '📦', route: '/inventory', permission: Permission.INVENTORY },
     { label: AR.nav.users, icon: '👥', route: '/users', permission: Permission.USERS },

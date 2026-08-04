@@ -1,3 +1,8 @@
+.gmn-table-toolbar {
+  padding: 0.875rem 1rem 0;
+  margin-bottom: 0.25rem;
+}
+
 .gmn-table-wrap {
   overflow-x: auto;
   border-radius: var(--radius-xl);
@@ -53,6 +58,7 @@
       color: var(--text-secondary);
       border-bottom: 1px solid var(--border-subtle);
       vertical-align: middle;
+      white-space: nowrap;
     }
   }
 
@@ -85,5 +91,6 @@
     padding: 3rem 1rem !important;
     color: var(--text-faint);
     font-size: 0.875rem;
+    white-space: normal;
   }
 }

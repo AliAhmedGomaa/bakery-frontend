@@ -106,7 +106,7 @@ import { AR } from '../../core/i18n/ar';
     .row-actions {
       display: flex;
       gap: 0.35rem;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
     }
     .cat-form {
       display: flex;
@@ -141,7 +141,7 @@ export class CategoriesComponent implements OnInit {
   form = {
     name: '',
     nameAr: '',
-    sortOrder: 0,
+    sortOrder: '' as string | number,
     isActive: true,
   };
 
@@ -176,7 +176,7 @@ export class CategoriesComponent implements OnInit {
 
   openNew(): void {
     this.editingId.set(null);
-    this.form = { name: '', nameAr: '', sortOrder: this.categories().length + 1, isActive: true };
+    this.form = { name: '', nameAr: '', sortOrder: '', isActive: true };
     this.showModal.set(true);
   }
 
@@ -206,12 +206,13 @@ export class CategoriesComponent implements OnInit {
     if (!this.form.name.trim() || !this.form.nameAr.trim()) return;
     const editId = this.editingId();
     this.saving.set(true);
+    const sortOrder = this.form.sortOrder === '' ? 0 : Number(this.form.sortOrder) || 0;
 
     if (editId) {
       this.api
         .patch(`/categories/${editId}`, {
           nameAr: this.form.nameAr.trim(),
-          sortOrder: Number(this.form.sortOrder) || 0,
+          sortOrder,
           isActive: this.form.isActive,
         })
         .subscribe({
@@ -229,7 +230,7 @@ export class CategoriesComponent implements OnInit {
       .post('/categories', {
         name: this.form.name.trim(),
         nameAr: this.form.nameAr.trim(),
-        sortOrder: Number(this.form.sortOrder) || 0,
+        sortOrder,
         isActive: true,
       })
       .subscribe({

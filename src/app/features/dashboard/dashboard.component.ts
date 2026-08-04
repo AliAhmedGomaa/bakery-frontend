@@ -182,9 +182,12 @@ interface ProductionBatchRow {
       font-size: 0.75rem;
       font-weight: 600;
       color: var(--text-muted);
+      min-width: 0;
     }
     .dash__date {
+      box-sizing: border-box;
       height: 2.5rem;
+      max-width: 100%;
       padding: 0 0.75rem;
       border-radius: var(--radius-xl);
       border: 1.5px solid var(--border-default);
@@ -193,6 +196,9 @@ interface ProductionBatchRow {
       font-family: inherit;
       font-size: 0.875rem;
       min-width: 10rem;
+    }
+    .dash__dates gmn-button {
+      flex-shrink: 0;
     }
     .dash__grid {
       display: grid;
@@ -231,21 +237,33 @@ interface ProductionBatchRow {
         flex-direction: column;
         align-items: stretch;
       }
+      .dash__filters {
+        width: 100%;
+        min-width: 0;
+      }
       .dash__presets,
       .dash__dates {
         justify-content: flex-start;
+        width: 100%;
       }
       .dash__dates {
-        flex-direction: column;
-        align-items: stretch;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-items: end;
+        gap: 0.75rem;
       }
-      .dash__dates label,
-      .dash__date {
+      .dash__dates label {
         width: 100%;
         min-width: 0;
       }
       .dash__date {
+        width: 100%;
         min-width: 0;
+      }
+      .dash__dates gmn-button {
+        grid-column: 1 / -1;
+        display: block;
+        width: 100%;
       }
     }
 
@@ -255,6 +273,22 @@ interface ProductionBatchRow {
       }
       .kpi-value {
         font-size: 1.5rem;
+      }
+      .dash__dates {
+        grid-template-columns: 1fr;
+      }
+      .dash__date {
+        font-size: 1rem;
+        min-height: 2.75rem;
+        height: 2.75rem;
+      }
+      .dash__presets {
+        gap: 0.35rem;
+      }
+      .dash__preset {
+        flex: 1 1 calc(50% - 0.35rem);
+        text-align: center;
+        padding: 0.45rem 0.5rem;
       }
     }
   `],

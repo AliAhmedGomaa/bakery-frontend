@@ -17,7 +17,6 @@ import {
   Product,
   RawMaterial,
   Recipe,
-  RecipeIngredient,
   SellType,
 } from '../../../core/models/types';
 import { AR } from '../../../core/i18n/ar';
@@ -29,6 +28,11 @@ interface IngredientDetail {
   costPerUnit: number;
   lineCost: number;
   currentStock: number;
+}
+
+interface RecipeIngredientForm {
+  rawMaterialId: string;
+  quantityRequired: string | number;
 }
 
 @Component({
@@ -214,15 +218,13 @@ interface IngredientDetail {
     .row-actions {
       display: flex;
       gap: 0.35rem;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
     }
     .ingredients-summary {
       display: block;
-      max-width: 18rem;
       color: var(--text-muted);
       font-size: 0.8125rem;
-      line-height: 1.4;
-      white-space: normal;
+      white-space: nowrap;
     }
     .recipe-details {
       display: flex;
@@ -304,10 +306,12 @@ interface IngredientDetail {
     .recipe-form__select {
       width: 100%;
       height: 2.75rem;
-      padding: 0 1rem;
+      padding-block: 0;
+      padding-inline-start: 1rem;
+      padding-inline-end: 2.35rem;
       border-radius: var(--radius-md);
       border: 1.5px solid var(--border-default);
-      background: var(--bg-surface-container-high);
+      background-color: var(--bg-surface-container-high);
       color: var(--text-primary);
       font-family: inherit;
       font-size: 0.875rem;
@@ -375,6 +379,7 @@ export class RecipeBuilderComponent implements OnInit {
   products = signal<Product[]>([]);
   materials = signal<RawMaterial[]>([]);
   categories = signal<Category[]>([]);
+  sellTypes = signal<SellType[]>([]);
   showModal = signal(false);
   showDetails = signal(false);
   saving = signal(false);
@@ -382,7 +387,7 @@ export class RecipeBuilderComponent implements OnInit {
   detailsRecipe = signal<Recipe | null>(null);
 
   selectedProductId = '';
-  ingredients = signal<RecipeIngredient[]>([]);
+  ingredients = signal<RecipeIngredientForm[]>([]);
 
   tableData = computed(() =>
     this.recipes().map((r) => ({
@@ -401,6 +406,10 @@ export class RecipeBuilderComponent implements OnInit {
     this.api.get<Category[]>('/categories').subscribe({
       next: (d) => this.categories.set(d),
       error: () => this.categories.set([]),
+    });
+    this.api.get<SellType[]>('/sell-types').subscribe({
+      next: (d) => this.sellTypes.set(d),
+      error: () => this.sellTypes.set([]),
     });
   }
 
@@ -442,9 +451,10 @@ export class RecipeBuilderComponent implements OnInit {
     return this.categories().find((c) => c.name === category)?.nameAr ?? category;
   }
 
-  sellTypeLabel(sellType?: SellType | string): string {
-    if (sellType === SellType.WEIGHT || sellType === 'WEIGHT') return AR.products.weight;
-    return AR.products.piece;
+  sellTypeLabel(sellType?: string): string {
+    if (!sellType) return '—';
+    return this.sellTypes().find((s) => s.name === sellType)?.nameAr
+      ?? (sellType === 'WEIGHT' ? AR.products.weight : AR.products.piece);
   }
 
   unitLabel(unit?: string): string {
@@ -494,7 +504,7 @@ export class RecipeBuilderComponent implements OnInit {
   openNew(): void {
     this.editingId.set(null);
     this.selectedProductId = '';
-    this.ingredients.set([{ rawMaterialId: '', quantityRequired: 0 }]);
+    this.ingredients.set([{ rawMaterialId: '', quantityRequired: '' }]);
     this.showModal.set(true);
   }
 
@@ -538,14 +548,14 @@ export class RecipeBuilderComponent implements OnInit {
   }
 
   addIngredient(): void {
-    this.ingredients.update((list) => [...list, { rawMaterialId: '', quantityRequired: 0 }]);
+    this.ingredients.update((list) => [...list, { rawMaterialId: '', quantityRequired: '' }]);
   }
 
   removeIngredient(idx: number): void {
     this.ingredients.update((list) => list.filter((_, i) => i !== idx));
   }
 
-  updateIngQty(idx: number, value: number): void {
+  updateIngQty(idx: number, value: string | number): void {
     this.ingredients.update((list) =>
       list.map((ing, i) => (i === idx ? { ...ing, quantityRequired: value } : ing)),
     );
@@ -553,7 +563,12 @@ export class RecipeBuilderComponent implements OnInit {
 
   saveRecipe(): void {
     if (!this.selectedProductId) return;
-    const validIngredients = this.ingredients().filter((i) => i.rawMaterialId && i.quantityRequired > 0);
+    const validIngredients = this.ingredients()
+      .map((i) => ({
+        rawMaterialId: i.rawMaterialId,
+        quantityRequired: Number(i.quantityRequired),
+      }))
+      .filter((i) => i.rawMaterialId && !isNaN(i.quantityRequired) && i.quantityRequired > 0);
     if (validIngredients.length === 0) return;
 
     this.saving.set(true);

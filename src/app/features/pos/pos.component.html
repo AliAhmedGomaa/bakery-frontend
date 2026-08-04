@@ -46,10 +46,10 @@
           </span>
           <span class="pos__product-name">{{ product.name }}</span>
           <span class="pos__product-meta">
-            @if (product.sellType === 'WEIGHT') {
-              <gmn-badge variant="info" size="sm">{{ ar.pos.byWeight }}</gmn-badge>
+            @if (isWeightProduct(product)) {
+              <gmn-badge variant="info" size="sm">{{ sellTypeLabel(product.sellType) }}</gmn-badge>
             } @else {
-              <gmn-badge variant="neutral" size="sm">{{ ar.pos.byPiece }}</gmn-badge>
+              <gmn-badge variant="neutral" size="sm">{{ sellTypeLabel(product.sellType) }}</gmn-badge>
             }
           </span>
           <span class="pos__product-price">{{ ar.dashboard.currency }} {{ product.price }}</span>
@@ -74,7 +74,13 @@
           <div class="pos__cart-item-info">
             <span class="pos__cart-item-name">{{ item.product.name }}</span>
             @if (item.weightInGrams !== null) {
-              <span class="pos__cart-item-weight">{{ formatWeightKg(item.weightInGrams) }} {{ ar.pos.kg }}</span>
+              <button
+                type="button"
+                class="pos__cart-item-weight"
+                (click)="editCartWeight(idx)"
+              >
+                {{ formatWeightKg(item.weightInGrams) }} {{ ar.pos.kg }}
+              </button>
             }
           </div>
 
@@ -84,6 +90,12 @@
               <span class="pos__qty">{{ item.quantity }}</span>
               <button class="pos__qty-btn" (click)="updateQuantity(idx, 1)">+</button>
             } @else {
+              <button
+                type="button"
+                class="pos__qty-btn"
+                [attr.aria-label]="ar.pos.editWeight"
+                (click)="editCartWeight(idx)"
+              >✎</button>
               <button class="pos__qty-btn pos__qty-btn--remove" (click)="removeFromCart(idx)">✕</button>
             }
           </div>
@@ -104,7 +116,7 @@
           [label]="ar.pos.discount"
           type="number"
           [ngModel]="discount()"
-          (ngModelChange)="discount.set($event)"
+          (ngModelChange)="onDiscountChange($event)"
         />
       </div>
     }
@@ -131,10 +143,10 @@
 
 <gmn-modal
   [open]="showWeightModal()"
-  [title]="ar.pos.enterWeight"
+  [title]="editingCartIndex() !== null ? ar.pos.editWeight : ar.pos.enterWeight"
   [subtitle]="weightProduct()?.name ?? ''"
   size="sm"
-  (closed)="showWeightModal.set(false)"
+  (closed)="closeWeightModal()"
 >
   <div class="weight-modal">
     <div class="weight-modal__quick">
@@ -165,8 +177,10 @@
     </p>
   </div>
   <div footer>
-    <gmn-button variant="ghost" (clicked)="showWeightModal.set(false)">{{ ar.pos.cancel }}</gmn-button>
-    <gmn-button variant="primary" (clicked)="confirmWeight()">{{ ar.pos.addToCart }}</gmn-button>
+    <gmn-button variant="ghost" (clicked)="closeWeightModal()">{{ ar.pos.cancel }}</gmn-button>
+    <gmn-button variant="primary" (clicked)="confirmWeight()">
+      {{ editingCartIndex() !== null ? ar.pos.updateWeight : ar.pos.addToCart }}
+    </gmn-button>
   </div>
 </gmn-modal>
 
@@ -209,10 +223,10 @@
       </div>
 
       <div class="payment-modal__totals">
-        @if (discount() > 0) {
+        @if ((discount() ?? 0) > 0) {
           <div class="payment-modal__total-row">
             <span>{{ ar.pos.discount }}</span>
-            <span>− {{ ar.dashboard.currency }} {{ discount() | number:'1.2-2' }}</span>
+            <span>− {{ ar.dashboard.currency }} {{ discount()! | number:'1.2-2' }}</span>
           </div>
         }
         <div class="payment-modal__total-row payment-modal__total-row--grand">

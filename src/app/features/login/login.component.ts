@@ -5,6 +5,7 @@ import { GmnCardComponent, GmnButtonComponent, GmnInputComponent } from '../../s
 import { InstallAppButtonComponent } from '../../shared/components/install-app-button/install-app-button.component';
 import { AuthService } from '../../core/services/auth.service';
 import { BrandingService } from '../../core/branding/branding.service';
+import { ThemeService } from '../../core/services/theme.service';
 import { AR } from '../../core/i18n/ar';
 
 @Component({
@@ -19,6 +20,16 @@ import { AR } from '../../core/i18n/ar';
   ],
   template: `
     <div class="login-page">
+      <button
+        type="button"
+        class="login-theme"
+        (click)="toggleTheme()"
+        [attr.aria-label]="theme.isDark() ? ar.nav.lightMode : ar.nav.darkMode"
+      >
+        <span class="login-theme__icon">{{ theme.isDark() ? '☀️' : '🌙' }}</span>
+        <span>{{ theme.isDark() ? ar.nav.lightMode : ar.nav.darkMode }}</span>
+      </button>
+
       <gmn-card variant="elevated" class="login-card">
         <div class="login-header">
           @if (branding.branding().logoUrl; as logo) {
@@ -61,12 +72,44 @@ import { AR } from '../../core/i18n/ar';
   `,
   styles: [`
     .login-page {
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
       padding: 1.5rem;
       background: var(--bg-surface-container);
+    }
+    .login-theme {
+      position: absolute;
+      top: 1.25rem;
+      inset-inline-start: 1.25rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 0.9rem;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.04));
+      transition:
+        background-color var(--duration-fast) ease,
+        border-color var(--duration-fast) ease,
+        color var(--duration-fast) ease;
+    }
+    .login-theme:hover {
+      background: var(--bg-surface-container-high);
+      border-color: var(--border-default);
+      color: var(--text-primary);
+    }
+    .login-theme__icon {
+      font-size: 1rem;
+      line-height: 1;
     }
     .login-card {
       width: 100%;
@@ -120,6 +163,7 @@ export class LoginComponent {
   private auth = inject(AuthService);
   private router = inject(Router);
   branding = inject(BrandingService);
+  theme = inject(ThemeService);
   readonly ar = AR;
 
   appName = computed(
@@ -133,6 +177,11 @@ export class LoginComponent {
   password = '';
   loading = signal(false);
   error = signal('');
+
+  toggleTheme(): void {
+    this.theme.toggle();
+    this.branding.reapply();
+  }
 
   onSubmit(): void {
     if (!this.mobile || !this.password) {
